@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30114.105
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TaskChaining", "src\TaskChaining.csproj", "{68ECCC63-041F-4224-9FF7-CDA13C547DCB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TaskChainingTests", "tests\unit\TaskChainingTests.csproj", "{0F9F7E48-C6A5-4558-A5F5-8F9E5B4690B1}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{68ECCC63-041F-4224-9FF7-CDA13C547DCB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{68ECCC63-041F-4224-9FF7-CDA13C547DCB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{68ECCC63-041F-4224-9FF7-CDA13C547DCB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{68ECCC63-041F-4224-9FF7-CDA13C547DCB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0F9F7E48-C6A5-4558-A5F5-8F9E5B4690B1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0F9F7E48-C6A5-4558-A5F5-8F9E5B4690B1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0F9F7E48-C6A5-4558-A5F5-8F9E5B4690B1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0F9F7E48-C6A5-4558-A5F5-8F9E5B4690B1}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{0F9F7E48-C6A5-4558-A5F5-8F9E5B4690B1} = {26E4FD11-2DB7-4E0D-841C-5ADC5760A46C}
+	EndGlobalSection
+EndGlobal

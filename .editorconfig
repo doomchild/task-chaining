@@ -1,0 +1,6 @@
+root = true
+
+[*.{cs,md}]
+indent_style=spaces
+indent_size=2
+encoding=utf-8

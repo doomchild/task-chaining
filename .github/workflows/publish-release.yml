@@ -1,0 +1,25 @@
+name: Publish Release
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  publish-release:
+    # ubuntu-latest provides many dependencies.
+    # See: https://github.com/actions/virtual-environments/blob/master/images/linux/Ubuntu1804-README.md
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout latest commit
+        uses: actions/checkout@v2
+      - name: Install CICEE
+        run: dotnet tool install -g cicee || dotnet tool update -g cicee
+      - name: Execute publish script - Publish project artifacts
+        run: cicee exec -c ci/bin/publish.sh
+        env:
+          NUGET_API_KEY: ${{secrets.NUGET_API_KEY}}
+          NUGET_SOURCE: ${{secrets.NUGET_SOURCE}}
+          RELEASE_ENVIRONMENT: true
