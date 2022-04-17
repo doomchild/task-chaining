@@ -1,0 +1,19 @@
+version: "3.7"
+
+##
+# Project-specific CI environment extensions
+##
+
+services:
+
+  # cicee execution service.
+  ci-exec:
+    # depends_on:
+    #   - pg
+    # environment:
+      # Environment variables with only a key are resolved to their values on the machine running (Docker) Compose.
+      #--
+      # Project
+      #--
+    # NOTE: Root user specified below helps address permissions errors when using the default CICEE Dockerfile.
+    user: root
