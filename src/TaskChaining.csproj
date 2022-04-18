@@ -5,6 +5,21 @@
     <Nullable>enable</Nullable>
     <OutputType>Library</OutputType>
     <RootNamespace>RLC.TaskChaining</RootNamespace>
+    <PackageId>RLC.TaskChaining</PackageId>
+    <Title>TaskChaining</Title>
+    <Authors>doomchild</Authors>
+    <Description>Monadic-style chaining for C# Tasks.</Description>
+    <Copyright>Copyright (c) 2022 Lee Crabtree</Copyright>
+    <RepositoryUrl>https://github.com/doomchild/task-chaining</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
 
 </Project>

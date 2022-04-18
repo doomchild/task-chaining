@@ -53,55 +53,23 @@ fi
 # Validate the project's source, e.g. run tests, linting.
 #--
 ci-validate() {
-  # How to use:
-  #   Uncomment the example validation workflow line(s) below which apply to the project, or execute validation commands.
-
-  printf "...\nTODO: Implement ci-validate in %s ...\n\n" "${WORKFLOWS_SCRIPT_LOCATION}"
-  # .NET _______
-  #  ci-dotnet-restore &&
-  #    ci-dotnet-build &&
-  #    ci-dotnet-test
-
-  # Node.js ____
-  #  npm ci &&
-  #    npm run build &&
-  #    npm run test
+  ci-dotnet-restore &&
+    ci-dotnet-build &&
+    ci-dotnet-test
 }
 
 #--
 # Compose the project's artifacts, e.g., compiled binaries, Docker images.
 #--
 ci-compose() {
-  # How to use:
-  #   Uncomment the example composition workflow line(s) below which apply to the project, or execute composition commands.
-
-  printf "...\nTODO: Implement ci-compose in %s ...\n\n" "${WORKFLOWS_SCRIPT_LOCATION}"
-  # .NET Library ________________________________
-  # ci-dotnet-pack
-
-  # .NET Application distributed as Docker image
-  # ci-dotnet-publish && ci-docker-build
-
-  # AWS CDK _____________________________________
-  # ci-aws-cdk-synth
+  ci-dotnet-pack
 }
 
 #--
 # Publish the project's artifact composition.
 #--
 ci-publish() {
-  # How to use:
-  #   Uncomment the example publishing workflow line(s) below which apply to the project, or execute publishing commands.
-
-  printf "...\nTODO: Implement ci-publish  in %s ...\n\n" "${WORKFLOWS_SCRIPT_LOCATION}"
-  # Push Docker image to AWS ECR ______
-  # ci-aws-ecr-docker-login && ci-docker-push
-
-  # Push .NET NuGet package ___________
-  # ci-dotnet-nuget-push
-
-  # Deploy AWS CDK Cloud Assembly _____
-  # ci-aws-cdk-deploy
+  ci-dotnet-nuget-push
 }
 
 export -f ci-compose
