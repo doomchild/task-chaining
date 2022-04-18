@@ -14,7 +14,7 @@ public class TaskExtrasTests
     public async void ItShouldRejectForASuccessfulPredicate()
     {
       Task<int> testTask = TaskExtras.RejectIf(
-        (int value) => value % 2 == 0,
+        (int value) => value % 2 != 0,
         value => new ArgumentException()
       )(1);
 
@@ -27,7 +27,7 @@ public class TaskExtrasTests
     public async void ItShouldThrowTheExpectedExceptionForASuccessfulPredicate()
     {
       Task<int> testTask = TaskExtras.RejectIf(
-        (int value) => value % 2 == 0,
+        (int value) => value % 2 != 0,
         value => new ArgumentException()
       )(1);
 
@@ -40,7 +40,7 @@ public class TaskExtrasTests
     public async void ItShouldResolveForAFailedPredicate()
     {
       Task<int> testTask = TaskExtras.RejectIf(
-        (int value) => value % 2 == 0,
+        (int value) => value % 2 != 0,
         value => new ArgumentException()
       )(2);
 

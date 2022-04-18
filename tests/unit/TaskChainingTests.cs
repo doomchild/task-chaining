@@ -24,7 +24,7 @@ public class TaskChainingTests
           .Then(testFunc)
           .Catch(ex => ex.Message.Length);
 
-        await Task.Delay(100);
+        await testTask;
 
         Assert.True(testTask.IsCompletedSuccessfully);
       }
@@ -37,7 +37,7 @@ public class TaskChainingTests
           .Then(testFunc)
           .Catch(ex => ex.Message.Length);
 
-        await Task.Delay(100);
+        await testTask;
 
         Assert.True(testTask.IsCompletedSuccessfully);
       }
@@ -50,8 +50,6 @@ public class TaskChainingTests
         int actualValue = await Task.FromResult("12345")
           .Then(testFunc)
           .Catch(ex => ex.Message.Length);
-
-        await Task.Delay(100);
 
         Assert.Equal(expectedValue, actualValue);
       }
@@ -67,7 +65,7 @@ public class TaskChainingTests
           .Then(testFunc)
           .Catch(ex => Task.FromResult(ex.Message.Length));
 
-        await Task.Delay(100);
+        await testTask;
 
         Assert.True(testTask.IsCompletedSuccessfully);
       }
@@ -80,7 +78,7 @@ public class TaskChainingTests
           .Then(testFunc)
           .Catch(ex => Task.FromResult(ex.Message.Length));
 
-        await Task.Delay(100);
+        await testTask;
 
         Assert.True(testTask.IsCompletedSuccessfully);
       }
@@ -93,8 +91,6 @@ public class TaskChainingTests
         int actualValue = await Task.FromResult("12345")
           .Then(testFunc)
           .Catch(ex => Task.FromResult(ex.Message.Length));
-
-        await Task.Delay(100);
 
         Assert.Equal(expectedValue, actualValue);
       }
@@ -112,8 +108,6 @@ public class TaskChainingTests
             await Task.Delay(1);
             return ex.Message.Length;
           });
-
-        await Task.Delay(100);
 
         Assert.Equal(expectedValue, actualValue);
       }
@@ -161,7 +155,11 @@ public class TaskChainingTests
         Task<int> testTask = Task.FromResult("abc")
           .Then(testFunc);
 
-        await Task.Delay(100);
+        try
+        {
+          await testTask;
+        }
+        catch { }
 
         Assert.True(testTask.IsFaulted);
       }
@@ -192,7 +190,11 @@ public class TaskChainingTests
         Func<string, int> testFunc = _ => throw new ArgumentException();
         Task<int> testTask = Task.FromResult("12345").Then(testFunc);
 
-        await Task.Delay(100);
+        try
+        {
+          await testTask;
+        }
+        catch { }
 
         Assert.True(testTask.IsFaulted);
       }
@@ -256,7 +258,7 @@ public class TaskChainingTests
         int expectedValue = 5;
         int actualValue = 0;
 
-        _ = Task.FromResult<string>("12345")
+        _ = Task.FromResult("12345")
           .Then(async str =>
           {
             await Task.Delay(1);
@@ -277,7 +279,7 @@ public class TaskChainingTests
         int expectedValue = 5;
         int actualValue = 0;
 
-        _ = Task.FromResult<string>("12345")
+        _ = Task.FromResult("12345")
           .Then(async str =>
           {
             await Task.Delay(1);
@@ -298,7 +300,11 @@ public class TaskChainingTests
         Func<string, Task<int>> testFunc = _ => throw new ArgumentException();
         Task<int> testTask = Task.FromResult("12345").Then(testFunc);
 
-        await Task.Delay(100);
+        try
+        {
+          await testTask;
+        }
+        catch { }
 
         Assert.True(testTask.IsFaulted);
       }
@@ -323,7 +329,11 @@ public class TaskChainingTests
         };
         Task<int> testTask = Task.FromResult("12345").Then(testFunc);
 
-        await Task.Delay(100);
+        try
+        {
+          await testTask;
+        }
+        catch { }
 
         Assert.True(testTask.IsFaulted);
       }
@@ -350,7 +360,11 @@ public class TaskChainingTests
         Task<int> testTask = Task.FromResult("abc")
           .Then(testFunc);
 
-        await Task.Delay(100);
+        try
+        {
+          await testTask;
+        }
+        catch { }
 
         Assert.True(testTask.IsFaulted);
       }

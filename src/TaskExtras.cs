@@ -9,8 +9,8 @@ public static class TaskExtras
 		Predicate<T> predicate,
 		Func<T, Exception> rejectionSupplier
 	) => value => predicate(value)
-		? Task.FromResult(value)
-		: Task.FromException<T>(rejectionSupplier(value));
+		? Task.FromException<T>(rejectionSupplier(value))
+		: Task.FromResult(value);
 
 	public static Func<Exception, Task<T>> ResolveIf<T>(
 		Predicate<Exception> predicate,
