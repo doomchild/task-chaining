@@ -1,0 +1,24 @@
+{
+  "name": "task-chaining",
+  "description": "Extension methods to System.Threading.Task to allow Promise-like chaining",
+  "title": "TaskChaining",
+  "version": "0.1.0",
+  "ciEnvironment": {
+    "variables": [
+      {
+        "name": "NUGET_API_KEY",
+        "description": "NuGet API Key",
+        "required": true,
+        "secret": true,
+        "defaultValue": null
+      },
+      {
+        "name": "NUGET_SOURCE",
+        "description": "NuGet Source URL",
+        "required": true,
+        "secret": false,
+        "defaultValue": "https://api.nuget.org"
+      }
+    ]
+  }
+}
