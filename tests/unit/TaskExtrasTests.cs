@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Threading.Tasks;
 
 using RLC.TaskChaining;
@@ -108,6 +109,28 @@ public class TaskExtrasTests
 
         Assert.True(testTask.IsFaulted);
       }
+    }
+  }
+
+  public class Defer
+  {
+    [Fact]
+    public async Task ItShouldWaitTheConfiguredTime()
+    {
+      Stopwatch testStopWatch = new();
+      int testDeferTimeMilliseconds = 1500;
+
+      testStopWatch.Start();
+
+      await TaskExtras.Defer(() => 1, TimeSpan.FromMilliseconds(testDeferTimeMilliseconds));
+
+      testStopWatch.Stop();
+
+      Assert.InRange(
+        testStopWatch.ElapsedMilliseconds,
+        testDeferTimeMilliseconds - (testDeferTimeMilliseconds * 0.1),
+        testDeferTimeMilliseconds + (testDeferTimeMilliseconds * 0.1)
+      );
     }
   }
 }
