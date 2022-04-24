@@ -36,4 +36,42 @@ public static class TaskExtras
 
 			return supplier();
 		}).Unwrap();
+
+	private static Task<T> DoRetry<T>(
+		Func<Task<T>> supplier,
+		RetryOptions<T> retryOptions,
+		Exception? exception,
+		int attempts = 0
+	)
+  {
+		double duration = retryOptions.RetryInterval * Math.Pow(retryOptions.RetryBackoffRate, attempts);
+
+		if (retryOptions.OnRetry != null && exception != null && attempts > 0)
+    {
+			retryOptions.OnRetry(attempts, duration, exception);
+    }
+
+		return attempts >= retryOptions.MaxRetries
+			? Task.FromException<T>(new RetryException(attempts))
+			: supplier()
+				.Catch(ResolveIf(
+					exception => retryOptions.ErrorEquals(exception),
+					exception => Defer(
+						() => DoRetry(supplier, retryOptions, exception, attempts + 1),
+						TimeSpan.FromMilliseconds(duration)
+					)
+				));
+  }
+
+	public static Task<T> Retry<T>(Func<Task<T>> supplier, RetryOptions<T> retryOptions) =>
+		DoRetry(supplier, retryOptions, null, 0);
+
+	public static Task<T> Retry<T>(Func<Task<T>> supplier) =>
+		Retry(supplier, RetryOptions<T>.Default);
+
+	public static Task<T> Retry<T>(Func<T> supplier, RetryOptions<T> retryOptions) =>
+		Retry(() => Task.Run(supplier), retryOptions);
+
+	public static Task<T> Retry<T>(Func<T> supplier) =>
+		Retry(supplier, RetryOptions<T>.Default);
 }

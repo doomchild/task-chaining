@@ -133,4 +133,69 @@ public class TaskExtrasTests
       );
     }
   }
+
+  public class Retry
+  {
+    [Fact]
+    public async Task ItShouldMakeTheConfiguredNumberOfAttempts()
+    {
+      int actualValue = 0;
+      Func<int> testFunc = () =>
+      {
+        actualValue += 1;
+
+        throw new Exception();
+      };
+      int expectedValue = 3;
+
+      try
+      {
+        await TaskExtras.Retry(testFunc);
+      }
+      catch(RetryException)
+      {
+      }
+
+      Assert.Equal(expectedValue, actualValue);
+    }
+
+    [Fact]
+    public async Task ItShouldThrowARetryExceptionAfterTheConfiguredNumberOfAttempts()
+    {
+      string expectedMessage = "Retries exhausted after 3 attempts";
+
+      Func<int> testFunc = () =>
+      {
+        throw new Exception();
+      };
+
+      Exception thrownException = await Assert.ThrowsAsync<RetryException>(async () => await TaskExtras.Retry(testFunc));
+
+      Assert.Equal(expectedMessage, thrownException.Message);
+    }
+
+    [Fact]
+    public async Task ItShouldPassIfARetrySucceeds()
+    {
+      int actualValue = 0;
+      Func<int> testFunc = () =>
+      {
+        actualValue += 1;
+
+        if (actualValue < 3)
+        {
+          throw new Exception();
+        }
+        else
+        {
+          return actualValue;
+        }
+      };
+      int expectedValue = 3;
+
+      await TaskExtras.Retry(testFunc);
+
+      Assert.Equal(expectedValue, actualValue);
+    }
+  }
 }
