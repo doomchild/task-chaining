@@ -25,4 +25,15 @@ public static class TaskExtras
 	) => value => predicate(value)
 		? resolutionSupplier(value)
 		: Task.FromException<T>(value);
+
+	public static Task<T> Defer<T>(Func<T> supplier, TimeSpan deferTime) =>
+		Defer(() => Task.FromResult(supplier()), deferTime);
+
+	public static Task<T> Defer<T>(Func<Task<T>> supplier, TimeSpan deferTime) =>
+		Task.Run(async () =>
+		{
+			await Task.Delay(deferTime);
+
+			return supplier();
+		}).Unwrap();
 }
