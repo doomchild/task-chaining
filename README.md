@@ -88,6 +88,28 @@ Promise<string>.Resolve(someExternalUrl)
   )
 ```
 
+#### Retry
+
+`Task.Retry` can be used to automatically retry a function.  The `RetryOptions` type holds the retry interval, backoff rate, maximum attempt count, an optional `Action` to perform when a retry is about to happen, and a `Predicate<Exception>` that is used to decide whether or not a retry should be performed based on the `Exception` that occurred during the last execution.
+
+```c#
+HttpClient client;  // Assuming this is coming from an HttpClientFactory or injected or whatever
+ILogger logger;
+
+RetryOptions options = new (
+  3,
+  1000,
+  2,
+  (attemptCount, duration, exception) => logger.LogError(exception, $"Starting retry {attemptCount} after {duration} milliseconds"),
+  exception => exception is NullReferenceException ? true : false  // Only NullReferenceExceptions will trigger retries, other exceptions will fall through
+);
+
+Task.FromResult(someExternalUrl)
+  .Retry(client.GetAsync, options)
+```
+
+If the `RetryOptions` parameter is not passed, the default values (3 attempts, 1000ms duration, backoff rate of 2) are used.
+
 ### Static Methods
 
 There are some convenience methods on `TaskExtras` that are useful when transitioning between the fulfilled and faulted states.
