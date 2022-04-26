@@ -98,9 +98,9 @@ ILogger logger;
 
 RetryOptions options = new (
   3,
-  1000,
+  TimeSpan.FromMilliseconds(1000),
   2,
-  (attemptCount, duration, exception) => logger.LogError(exception, $"Starting retry {attemptCount} after {duration} milliseconds"),
+  (attemptCount, duration, exception) => logger.LogError(exception, $"Starting retry {attemptCount} after {duration.TotalMilliseconds} milliseconds"),
   exception => exception is NullReferenceException ? true : false  // Only NullReferenceExceptions will trigger retries, other exceptions will fall through
 );
 

@@ -76,11 +76,8 @@ public static class TaskExtensions
     Pipe2(onRejected, Task.FromResult)
   );
 
-  public static Task<TNext> Then<T, TNext>(this Task<T> task, Func<T, Task<TNext>> onFulfilled, Func<Exception, Task<TNext>> onRejected)
-  {
-    return task.Fold(
-      async exception => await onRejected(exception),
-      async value => await onFulfilled(value)
-    ).Unwrap();
-  }
+  public static Task<TNext> Then<T, TNext>(this Task<T> task, Func<T, Task<TNext>> onFulfilled, Func<Exception, Task<TNext>> onRejected) => task.Fold(
+    onRejected,
+    onFulfilled
+  ).Unwrap();
 }
