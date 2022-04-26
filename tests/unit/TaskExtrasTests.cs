@@ -118,7 +118,7 @@ public class TaskExtrasTests
     public async Task ItShouldWaitTheConfiguredTime()
     {
       Stopwatch testStopWatch = new();
-      int testDeferTimeMilliseconds = 1500;
+      int testDeferTimeMilliseconds = 100;
 
       testStopWatch.Start();
 

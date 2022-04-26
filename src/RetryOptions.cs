@@ -2,7 +2,7 @@
 
 namespace RLC.TaskChaining;
 
-public record RetryOptions<T>(
+public record RetryOptions(
   int MaxRetries,
   double RetryInterval,
   double RetryBackoffRate,
@@ -10,7 +10,7 @@ public record RetryOptions<T>(
   Predicate<Exception> ErrorEquals
 )
 {
-  public static RetryOptions<T> Default
+  public static RetryOptions Default
   {
     get
     {

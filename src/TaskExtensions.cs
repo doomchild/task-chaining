@@ -37,6 +37,19 @@ public static class TaskExtensions
     Pipe2(TaskStatics.Tap(onRejected), Task.FromException<T>)
   ).Unwrap();
 
+  public static Task<TNext> Retry<T, TNext>(this Task<T> task, Func<T, Task<TNext>> retryFunc, RetryOptions retryOptions) => task.Then<T, Task<TNext>>(
+    value => TaskExtras.Retry(() => retryFunc(value), retryOptions)
+  ).Unwrap();
+
+  public static Task<TNext> Retry<T, TNext>(this Task<T> task, Func<T, TNext> retryFunc, RetryOptions retryOptions) => task.Retry(
+    value => Task.FromResult(retryFunc(value)),
+    retryOptions
+  );
+
+  public static Task<TNext> Retry<T, TNext>(this Task<T> task, Func<T, Task<TNext>> retryFunc) => task.Retry(retryFunc, RetryOptions.Default);
+
+  public static Task<TNext> Retry<T, TNext>(this Task<T> task, Func<T, TNext> retryFunc) => task.Retry(retryFunc, RetryOptions.Default);
+
   public static Task<T> Tap<T>(
     this Task<T> task,
     Action<T> onFulfilled,
