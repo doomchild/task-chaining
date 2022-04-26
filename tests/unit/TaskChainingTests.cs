@@ -581,7 +581,7 @@ public class TaskChainingTests
 
   public class Retry
   {
-    public static RetryOptions TestRetryOptions = new(3, 100, 2, (_, _, _) => { }, exception => true);
+    public static RetryOptions TestRetryOptions = new(3, TimeSpan.FromMilliseconds(100), 2, (_, _, _) => { }, exception => true);
 
     public class ForTtoTNext
     {
