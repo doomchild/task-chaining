@@ -39,7 +39,7 @@ public static class TaskExtras
 
 	private static Task<T> DoRetry<T>(
 		Func<Task<T>> supplier,
-		RetryOptions<T> retryOptions,
+		RetryOptions retryOptions,
 		Exception? exception,
 		int attempts = 0
 	)
@@ -53,7 +53,7 @@ public static class TaskExtras
 
 		return attempts >= retryOptions.MaxRetries
 			? Task.FromException<T>(new RetryException(attempts))
-			: supplier()
+			: Task.Run(supplier)
 				.Catch(ResolveIf(
 					exception => retryOptions.ErrorEquals(exception),
 					exception => Defer(
@@ -63,15 +63,15 @@ public static class TaskExtras
 				));
   }
 
-	public static Task<T> Retry<T>(Func<Task<T>> supplier, RetryOptions<T> retryOptions) =>
+	public static Task<T> Retry<T>(Func<Task<T>> supplier, RetryOptions retryOptions) =>
 		DoRetry(supplier, retryOptions, null, 0);
 
 	public static Task<T> Retry<T>(Func<Task<T>> supplier) =>
-		Retry(supplier, RetryOptions<T>.Default);
+		Retry(supplier, RetryOptions.Default);
 
-	public static Task<T> Retry<T>(Func<T> supplier, RetryOptions<T> retryOptions) =>
+	public static Task<T> Retry<T>(Func<T> supplier, RetryOptions retryOptions) =>
 		Retry(() => Task.Run(supplier), retryOptions);
 
 	public static Task<T> Retry<T>(Func<T> supplier) =>
-		Retry(supplier, RetryOptions<T>.Default);
+		Retry(supplier, RetryOptions.Default);
 }

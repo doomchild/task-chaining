@@ -59,7 +59,7 @@ The `IfFulfilled` and `IfRejected` methods can be used to perform side effects s
 ```c#
 HttpClient client;  // Assuming this is coming from an HttpClientFactory or injected or whatever
 
-Promise<string>.Resolve("https://www.google.com/")
+Task.FromResult("https://www.google.com/")
   .Then(client.GetAsync)
   .IfFulfilled(response => _logger.LogDebug("Got response {Response}", response)
   .Then(response => response.StatusCode);
@@ -68,25 +68,47 @@ Promise<string>.Resolve("https://www.google.com/")
 ```c#
 HttpClient client;  // Assuming this is coming from an HttpClientFactory or injected or whatever
 
-Promise<string>.Resolve("not-a-url")
+Task.FromResult("not-a-url")
   .Then(client.GetAsync)
   .IfRejected(exception => _logger.LogException(exception, "Failed to get URL")
   .Catch(exception => exception.Message)
   .Then(message => message.Length);
 ```
 
-The `Tap` method takes both an `onFulfilled` and `onRejected` `Action` in the event that you want to perform some side effect on both sides of the `Promise` at a single time.
+The `Tap` method takes both an `onFulfilled` and `onRejected` `Action` in the event that you want to perform some side effect on both sides of the `Task` at a single time.
 
 ```c#
 HttpClient client;  // Assuming this is coming from an HttpClientFactory or injected or whatever
 
-Promise<string>.Resolve(someExternalUrl)
+Task.FromResult(someExternalUrl)
   .Then(client.GetAsync)
   .Tap(
     response => _logger.LogDebug("Got response {Response}", response),
     exception => _logger.LogException(exception, "Failed to get URL")
   )
 ```
+
+#### Retry
+
+`Task.Retry` can be used to automatically retry a function.  The `RetryOptions` type holds the retry interval, backoff rate, maximum attempt count, an optional `Action` to perform when a retry is about to happen, and a `Predicate<Exception>` that is used to decide whether or not a retry should be performed based on the `Exception` that occurred during the last execution.
+
+```c#
+HttpClient client;  // Assuming this is coming from an HttpClientFactory or injected or whatever
+ILogger logger;
+
+RetryOptions options = new (
+  3,
+  1000,
+  2,
+  (attemptCount, duration, exception) => logger.LogError(exception, $"Starting retry {attemptCount} after {duration} milliseconds"),
+  exception => exception is NullReferenceException ? true : false  // Only NullReferenceExceptions will trigger retries, other exceptions will fall through
+);
+
+Task.FromResult(someExternalUrl)
+  .Retry(client.GetAsync, options)
+```
+
+If the `RetryOptions` parameter is not passed, the default values (3 attempts, 1000ms duration, backoff rate of 2) are used.
 
 ### Static Methods
 
