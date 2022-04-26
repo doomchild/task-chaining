@@ -34,8 +34,8 @@ public static class TaskExtras
 		{
 			await Task.Delay(deferTime);
 
-			return supplier();
-		}).Unwrap();
+			return await supplier();
+		});
 
 	private static Task<T> DoRetry<T>(
 		Func<Task<T>> supplier,
