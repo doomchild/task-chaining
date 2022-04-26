@@ -59,7 +59,7 @@ The `IfFulfilled` and `IfRejected` methods can be used to perform side effects s
 ```c#
 HttpClient client;  // Assuming this is coming from an HttpClientFactory or injected or whatever
 
-Promise<string>.Resolve("https://www.google.com/")
+Task.FromResult("https://www.google.com/")
   .Then(client.GetAsync)
   .IfFulfilled(response => _logger.LogDebug("Got response {Response}", response)
   .Then(response => response.StatusCode);
@@ -68,19 +68,19 @@ Promise<string>.Resolve("https://www.google.com/")
 ```c#
 HttpClient client;  // Assuming this is coming from an HttpClientFactory or injected or whatever
 
-Promise<string>.Resolve("not-a-url")
+Task.FromResult("not-a-url")
   .Then(client.GetAsync)
   .IfRejected(exception => _logger.LogException(exception, "Failed to get URL")
   .Catch(exception => exception.Message)
   .Then(message => message.Length);
 ```
 
-The `Tap` method takes both an `onFulfilled` and `onRejected` `Action` in the event that you want to perform some side effect on both sides of the `Promise` at a single time.
+The `Tap` method takes both an `onFulfilled` and `onRejected` `Action` in the event that you want to perform some side effect on both sides of the `Task` at a single time.
 
 ```c#
 HttpClient client;  // Assuming this is coming from an HttpClientFactory or injected or whatever
 
-Promise<string>.Resolve(someExternalUrl)
+Task.FromResult(someExternalUrl)
   .Then(client.GetAsync)
   .Tap(
     response => _logger.LogDebug("Got response {Response}", response),
