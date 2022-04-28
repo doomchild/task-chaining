@@ -51,6 +51,55 @@ public class TaskExtrasTests
     }
   }
 
+  public class ReRejectIf
+  {
+    [Fact]
+    public async Task ItShouldReRejectForSuccessfulPredicate()
+    {
+      string expectedMessage = Guid.NewGuid().ToString();
+      Task<int> testTask = Task.FromException<int>(new ArgumentNullException())
+        .Catch(TaskExtras.ReRejectIf<int>(
+          exception => exception is ArgumentNullException,
+          exception => new ArgumentException(expectedMessage, exception)
+        ));
+      Exception thrownException = new();
+
+      try
+      {
+        await testTask;
+      }
+      catch(ArgumentException exception)
+      {
+        thrownException = exception;
+      }
+
+      Assert.Equal(expectedMessage, thrownException.Message);
+    }
+
+    [Fact]
+    public async Task ItShouldNotReRejectForFailedPredicate()
+    {
+      string expectedMessage = Guid.NewGuid().ToString();
+      Task<int> testTask = Task.FromException<int>(new ArgumentException(expectedMessage))
+        .Catch(TaskExtras.ReRejectIf<int>(
+          exception => exception is StackOverflowException,
+          exception => new ArgumentNullException(Guid.NewGuid().ToString(), exception)
+        ));
+      Exception thrownException = new();
+
+      try
+      {
+        await testTask;
+      }
+      catch (ArgumentException exception)
+      {
+        thrownException = exception;
+      }
+
+      Assert.Equal(expectedMessage, thrownException.Message);
+    }
+  }
+
   public class ResolveIf
   {
     public class WithRawResolutionSupplier
