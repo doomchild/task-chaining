@@ -3,8 +3,17 @@ using System.Runtime.CompilerServices;
 
 namespace RLC.TaskChaining;
 
-internal static class TaskStatics
+public static class TaskStatics
 {
+  [MethodImpl(MethodImplOptions.AggressiveInlining)]
+  public static Func<T> Constant<T>(T value) => () => value;
+
+  [MethodImpl(MethodImplOptions.AggressiveInlining)]
+  public static Func<T, U> Constant<T, U>(U value) => _ => value;
+
+  [MethodImpl(MethodImplOptions.AggressiveInlining)]
+  public static T Identity<T>(T value) => value;
+
   [MethodImpl(MethodImplOptions.AggressiveInlining)]
   public static T Invoke<T>(Func<T> supplier) => supplier();
 
