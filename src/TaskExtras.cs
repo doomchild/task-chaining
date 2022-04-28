@@ -12,6 +12,13 @@ public static class TaskExtras
 		? Task.FromException<T>(rejectionSupplier(value))
 		: Task.FromResult(value);
 
+	public static Func<Exception, Task<T>> ReRejectIf<T>(
+		Predicate<Exception> predicate,
+		Func<Exception, Exception> rerejectionSupplier
+	) => exception => predicate(exception)
+		? Task.FromException<T>(rerejectionSupplier(exception))
+		: Task.FromException<T>(exception);
+
 	public static Func<Exception, Task<T>> ResolveIf<T>(
 		Predicate<Exception> predicate,
 		Func<Exception, T> resolutionSupplier
