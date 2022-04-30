@@ -9,6 +9,21 @@ namespace RLC.TaskChainingTests;
 
 public class TaskExtrasTests
 {
+  public class Invoke
+  {
+    [Fact]
+    public void ItShouldInvokeTheFunction()
+    {
+      int expectedValue = 5;
+      int actualValue = 0;
+      Func<int> testFunc = () => expectedValue;
+
+      actualValue = TaskStatics.Invoke(testFunc);
+
+      Assert.Equal(expectedValue, actualValue);
+    }
+  }
+
 	public class RejectIf
   {
     [Fact]
