@@ -2,7 +2,7 @@
 
 namespace RLC.TaskChaining;
 
-public record RetryOptions(
+public record RetryParams(
   int MaxRetries,
   TimeSpan RetryInterval,
   double RetryBackoffRate,
@@ -10,7 +10,7 @@ public record RetryOptions(
   Predicate<Exception> ShouldRetry
 )
 {
-  public static RetryOptions Default
+  public static RetryParams Default
   {
     get
     {

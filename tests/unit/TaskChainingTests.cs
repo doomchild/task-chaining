@@ -8,10 +8,57 @@ using Jds.TestingUtils.MockHttp;
 using RLC.TaskChaining;
 using Xunit;
 
+using static RLC.TaskChaining.TaskStatics;
+
 namespace RLC.TaskChainingTests;
 
 public class TaskChainingTests
 {
+  public class Alt
+  {
+    public class WithRawValue
+    {
+      [Fact]
+      public async Task ItShouldNotReplaceForAFulfillment()
+      {
+        int expectedValue = 1;
+        int actualValue = await Task.FromResult(1).Alt(Task.FromResult(2));
+
+        Assert.Equal(expectedValue, actualValue);
+      }
+
+      [Fact]
+      public async Task ItShouldReplaceForAFault()
+      {
+        int expectedValue = 2;
+        int actualValue = await Task.FromException<int>(new Exception()).Alt(Task.FromResult(2));
+
+        Assert.Equal(expectedValue, actualValue);
+      }
+    }
+
+    public class WithSupplier
+    {
+      [Fact]
+      public async Task ItShouldNotReplaceForAFulfillment()
+      {
+        int expectedValue = 1;
+        int actualValue = await Task.FromResult(1).Alt(() => Task.FromResult(2));
+
+        Assert.Equal(expectedValue, actualValue);
+      }
+
+      [Fact]
+      public async Task ItShouldReplaceForAFault()
+      {
+        int expectedValue = 2;
+        int actualValue = await Task.FromException<int>(new Exception()).Alt(() => Task.FromResult(2));
+
+        Assert.Equal(expectedValue, actualValue);
+      }
+    }
+  }
+
   public class Catch
   {
     public class ForExceptionTtoT
@@ -114,277 +161,463 @@ public class TaskChainingTests
     }
   }
 
-  public class Then
+  public class Filter
   {
-    public class ForTtoTNext
+    public class WithRawValue
     {
       [Fact]
-      public async void ItShouldTransition()
+      public async Task ItShouldNotFaultForASuccessfulPredicate()
       {
-        int expectedValue = 5;
-        int actualValue = await Task.FromResult("12345")
-          .Then(str => str.Length);
+        Task<int> testTask = Task.FromResult(2).Filter(value => value % 2 == 0, new Exception("not even"));
+
+        await Task.Delay(10);
+
+        Assert.True(testTask.IsCompletedSuccessfully);
+      }
+
+      [Fact]
+      public async Task ItShouldNotChangeTheValueForASuccessfulPredicate()
+      {
+        int expectedValue = 2;
+        int actualValue = await Task.FromResult(2).Filter(value => value % 2 == 0, new Exception("not even"));
 
         Assert.Equal(expectedValue, actualValue);
       }
 
       [Fact]
-      public async void ItShouldCompleteWithoutAwaiting()
+      public async Task ItShouldTransitionForAFailedPredicate()
       {
-        int expectedValue = 5;
-        int actualValue = 0;
-
-        _ = Task.FromResult("12345")
-          .Then(str =>
-          {
-            actualValue = str.Length;
-
-            return actualValue;
-          });
-
-        await Task.Delay(100);
-
-        Assert.Equal(expectedValue, actualValue);
-      }
-
-      [Fact]
-      public async void ItShouldFaultForThrownExceptions()
-      {
-        Func<string, int> testFunc = _ => throw new Exception();
-
-        Task<int> testTask = Task.FromResult("abc")
-          .Then(testFunc);
+        string expectedMessage = Guid.NewGuid().ToString();
+        Task<int> testTask = Task.FromResult(1).Filter(value => value % 2 == 0, new ArgumentException(expectedMessage));
+        Exception thrownException = new();
 
         try
         {
           await testTask;
         }
-        catch { }
-
-        Assert.True(testTask.IsFaulted);
-      }
-
-      [Fact]
-      public async void ItShouldRethrowForFaults()
-      {
-        Task<int> testTask = Task.FromException<string>(new ArgumentNullException("abcde"))
-          .Then(value => value.Length);
-
-        await Assert.ThrowsAsync<ArgumentNullException>(async () => await testTask);
-      }
-
-      [Fact]
-      public async void ItShouldNotRunForAFault()
-      {
-        Exception testException = new(Guid.NewGuid().ToString());
-
-        await Assert.ThrowsAsync<Exception>(
-          async () => await Task.FromException<string>(testException)
-            .Then(str => str.Length)
-        );
-      }
-
-      [Fact]
-      public async void ItShouldReportFaultedForThrownException()
-      {
-        Func<string, int> testFunc = _ => throw new ArgumentException();
-        Task<int> testTask = Task.FromResult("12345").Then(testFunc);
-
-        try
+        catch(ArgumentException exception)
         {
-          await testTask;
+          thrownException = exception;
         }
-        catch { }
 
-        Assert.True(testTask.IsFaulted);
-      }
-
-      [Fact]
-      public async void ItShouldThrowFaultedException()
-      {
-        Func<string, int> testFunc = _ => throw new ArgumentException();
-
-        await Assert.ThrowsAsync<ArgumentException>(
-          async () => await Task.FromResult("12345").Then(testFunc)
-        );
+        Assert.Equal(expectedMessage, thrownException.Message);
       }
     }
 
-    public class ForTtoTaskTNext
+    public class WithMorphism
     {
-      [Fact]
-      public async void ItShouldTransition()
+      public class WithRawValue
       {
-        int expectedValue = 5;
-        int actualValue = await Task.FromResult<string>("12345")
-          .Then(str => Task.FromResult(str.Length));
+        [Fact]
+        public async Task ItShouldNotFaultForASuccessfulPredicate()
+        {
+          Task<int> testTask = Task.FromResult(2).Filter(value => value % 2 == 0, value => new Exception("not even"));
 
-        Assert.Equal(expectedValue, actualValue);
-      }
+          await Task.Delay(10);
 
-      [Fact]
-      public async void ItShouldCompleteWithoutAwaiting()
-      {
-        int expectedValue = 5;
-        int actualValue = 0;
+          Assert.True(testTask.IsCompletedSuccessfully);
+        }
 
-        _ = Task.FromResult<string>("12345")
-          .Then(str =>
+        [Fact]
+        public async Task ItShouldNotChangeTheValueForASuccessfulPredicate()
+        {
+          int expectedValue = 2;
+          int actualValue = await Task.FromResult(2).Filter(value => value % 2 == 0, value => new Exception("not even"));
+
+          Assert.Equal(expectedValue, actualValue);
+        }
+
+        [Fact]
+        public async Task ItShouldTransitionForAFailedPredicate()
+        {
+          string expectedMessage = Guid.NewGuid().ToString();
+          Task<int> testTask = Task.FromResult(1).Filter(value => value % 2 == 0, value => new ArgumentException(expectedMessage));
+          Exception thrownException = new();
+
+          try
           {
-            actualValue = str.Length;
+            await testTask;
+          }
+          catch (ArgumentException exception)
+          {
+            thrownException = exception;
+          }
 
-            return Task.FromResult(actualValue);
-          });
+          Assert.Equal(expectedMessage, thrownException.Message);
+        }
+      }
+    }
+  }
 
-        await Task.Delay(100);
+  public class Then
+  {
+    public class ForOnlyFulfilled
+    {
+      public class ForTtoTNext
+      {
+        [Fact]
+        public async void ItShouldTransition()
+        {
+          int expectedValue = 5;
+          int actualValue = await Task.FromResult("12345")
+            .Then(str => str.Length);
 
-        Assert.Equal(expectedValue, actualValue);
+          Assert.Equal(expectedValue, actualValue);
+        }
+
+        [Fact]
+        public async void ItShouldCompleteWithoutAwaiting()
+        {
+          int expectedValue = 5;
+          int actualValue = 0;
+
+          _ = Task.FromResult("12345")
+            .Then(str =>
+            {
+              actualValue = str.Length;
+
+              return actualValue;
+            });
+
+          await Task.Delay(100);
+
+          Assert.Equal(expectedValue, actualValue);
+        }
+
+        [Fact]
+        public async void ItShouldFaultForThrownExceptions()
+        {
+          Func<string, int> testFunc = _ => throw new Exception();
+
+          Task<int> testTask = Task.FromResult("abc")
+            .Then(testFunc);
+
+          try
+          {
+            await testTask;
+          }
+          catch { }
+
+          Assert.True(testTask.IsFaulted);
+        }
+
+        [Fact]
+        public async void ItShouldRethrowForFaults()
+        {
+          Task<int> testTask = Task.FromException<string>(new ArgumentNullException("abcde"))
+            .Then(value => value.Length);
+
+          await Assert.ThrowsAsync<ArgumentNullException>(async () => await testTask);
+        }
+
+        [Fact]
+        public async void ItShouldNotRunForAFault()
+        {
+          Exception testException = new(Guid.NewGuid().ToString());
+
+          await Assert.ThrowsAsync<Exception>(
+            async () => await Task.FromException<string>(testException)
+              .Then(str => str.Length)
+          );
+        }
+
+        [Fact]
+        public async void ItShouldReportFaultedForThrownException()
+        {
+          Func<string, int> testFunc = _ => throw new ArgumentException();
+          Task<int> testTask = Task.FromResult("12345").Then(testFunc);
+
+          try
+          {
+            await testTask;
+          }
+          catch { }
+
+          Assert.True(testTask.IsFaulted);
+        }
+
+        [Fact]
+        public async void ItShouldThrowFaultedException()
+        {
+          Func<string, int> testFunc = _ => throw new ArgumentException();
+
+          await Assert.ThrowsAsync<ArgumentException>(
+            async () => await Task.FromResult("12345").Then(testFunc)
+          );
+        }
       }
 
-      [Fact]
-      public async void ItShouldNotRunForAFault()
+      public class ForTtoTaskTNext
       {
-        Exception testException = new(Guid.NewGuid().ToString());
+        [Fact]
+        public async void ItShouldTransition()
+        {
+          int expectedValue = 5;
+          int actualValue = await Task.FromResult<string>("12345")
+            .Then(str => Task.FromResult(str.Length));
 
-        await Assert.ThrowsAsync<Exception>(
-          async () => await Task.FromException<string>(testException)
-            .Then(str => Task.FromResult(str.Length))
-        );
-      }
+          Assert.Equal(expectedValue, actualValue);
+        }
 
-      [Fact]
-      public async void ItShouldContinueAsyncTasks()
-      {
-        int expectedValue = 5;
-        int actualValue = 0;
+        [Fact]
+        public async void ItShouldCompleteWithoutAwaiting()
+        {
+          int expectedValue = 5;
+          int actualValue = 0;
 
-        _ = Task.FromResult("12345")
-          .Then(async str =>
+          _ = Task.FromResult<string>("12345")
+            .Then(str =>
+            {
+              actualValue = str.Length;
+
+              return Task.FromResult(actualValue);
+            });
+
+          await Task.Delay(100);
+
+          Assert.Equal(expectedValue, actualValue);
+        }
+
+        [Fact]
+        public async void ItShouldNotRunForAFault()
+        {
+          Exception testException = new(Guid.NewGuid().ToString());
+
+          await Assert.ThrowsAsync<Exception>(
+            async () => await Task.FromException<string>(testException)
+              .Then(str => Task.FromResult(str.Length))
+          );
+        }
+
+        [Fact]
+        public async void ItShouldContinueAsyncTasks()
+        {
+          int expectedValue = 5;
+          int actualValue = 0;
+
+          _ = Task.FromResult("12345")
+            .Then(async str =>
+            {
+              await Task.Delay(1);
+
+              actualValue = str.Length;
+
+              return Task.FromResult(str.Length);
+            });
+
+          await Task.Delay(100);
+
+          Assert.Equal(expectedValue, actualValue);
+        }
+
+        [Fact]
+        public async void ItShouldContinueAsyncTasksWithoutAwaiting()
+        {
+          int expectedValue = 5;
+          int actualValue = 0;
+
+          _ = Task.FromResult("12345")
+            .Then(async str =>
+            {
+              await Task.Delay(1);
+
+              actualValue = str.Length;
+
+              return Task.FromResult(actualValue);
+            });
+
+          await Task.Delay(100);
+
+          Assert.Equal(expectedValue, actualValue);
+        }
+
+        [Fact]
+        public async void ItShouldReportFaultedForThrownException()
+        {
+          Func<string, Task<int>> testFunc = _ => throw new ArgumentException();
+          Task<int> testTask = Task.FromResult("12345").Then(testFunc);
+
+          try
+          {
+            await testTask;
+          }
+          catch { }
+
+          Assert.True(testTask.IsFaulted);
+        }
+
+        [Fact]
+        public async void ItShouldThrowFaultedException()
+        {
+          Func<string, Task<int>> testFunc = _ => throw new ArgumentException();
+
+          await Assert.ThrowsAsync<ArgumentException>(
+            async () => await Task.FromResult("12345").Then(testFunc)
+          );
+        }
+
+        [Fact]
+        public async void ItShouldReportFaultedForThrownExceptionFromAsync()
+        {
+          Func<string, Task<int>> testFunc = async _ =>
           {
             await Task.Delay(1);
+            throw new ArgumentException();
+          };
+          Task<int> testTask = Task.FromResult("12345").Then(testFunc);
 
-            actualValue = str.Length;
+          try
+          {
+            await testTask;
+          }
+          catch { }
 
-            return Task.FromResult(str.Length);
-          });
+          Assert.True(testTask.IsFaulted);
+        }
 
-        await Task.Delay(100);
-
-        Assert.Equal(expectedValue, actualValue);
-      }
-
-      [Fact]
-      public async void ItShouldContinueAsyncTasksWithoutAwaiting()
-      {
-        int expectedValue = 5;
-        int actualValue = 0;
-
-        _ = Task.FromResult("12345")
-          .Then(async str =>
+        [Fact]
+        public async void ItShouldThrowFaultedExceptionFromAsync()
+        {
+          Func<string, Task<int>> testFunc = async _ =>
           {
             await Task.Delay(1);
+            throw new ArgumentException();
+          };
 
-            actualValue = str.Length;
-
-            return Task.FromResult(actualValue);
-          });
-
-        await Task.Delay(100);
-
-        Assert.Equal(expectedValue, actualValue);
-      }
-
-      [Fact]
-      public async void ItShouldReportFaultedForThrownException()
-      {
-        Func<string, Task<int>> testFunc = _ => throw new ArgumentException();
-        Task<int> testTask = Task.FromResult("12345").Then(testFunc);
-
-        try
-        {
-          await testTask;
+          await Assert.ThrowsAsync<ArgumentException>(
+            async () => await Task.FromResult("12345").Then(testFunc)
+          );
         }
-        catch { }
 
-        Assert.True(testTask.IsFaulted);
-      }
-
-      [Fact]
-      public async void ItShouldThrowFaultedException()
-      {
-        Func<string, Task<int>> testFunc = _ => throw new ArgumentException();
-
-        await Assert.ThrowsAsync<ArgumentException>(
-          async () => await Task.FromResult("12345").Then(testFunc)
-        );
-      }
-
-      [Fact]
-      public async void ItShouldReportFaultedForThrownExceptionFromAsync()
-      {
-        Func<string, Task<int>> testFunc = async _ =>
+        [Fact]
+        public async void ItShouldFaultForThrownExceptions()
         {
-          await Task.Delay(1);
-          throw new ArgumentException();
-        };
-        Task<int> testTask = Task.FromResult("12345").Then(testFunc);
+          Func<string, Task<int>> testFunc = _ => throw new Exception();
 
-        try
-        {
-          await testTask;
+          Task<int> testTask = Task.FromResult("abc")
+            .Then(testFunc);
+
+          try
+          {
+            await testTask;
+          }
+          catch { }
+
+          Assert.True(testTask.IsFaulted);
         }
-        catch { }
 
-        Assert.True(testTask.IsFaulted);
-      }
-
-      [Fact]
-      public async void ItShouldThrowFaultedExceptionFromAsync()
-      {
-        Func<string, Task<int>> testFunc = async _ =>
+        [Fact]
+        public async void ItShouldCaptureTaskCancellation()
         {
-          await Task.Delay(1);
-          throw new ArgumentException();
-        };
+          HttpClient testHttpClient = new MockHttpBuilder()
+            .WithHandler(messageCaseBuilder => messageCaseBuilder.AcceptAll()
+              .RespondWith((responseBuilder, _) => responseBuilder.WithStatusCode(HttpStatusCode.OK))
+            )
+            .BuildHttpClient();
+          ;
+          CancellationTokenSource testTokenSource = new();
+          testTokenSource.Cancel();
 
-        await Assert.ThrowsAsync<ArgumentException>(
-          async () => await Task.FromResult("12345").Then(testFunc)
-        );
-      }
+          Task<string> testTask = Task.FromResult<string>("http://anything.anywhere")
+            .Then(async url => await testHttpClient.GetStringAsync(url, testTokenSource.Token));
 
-      [Fact]
-      public async void ItShouldFaultForThrownExceptions()
-      {
-        Func<string, Task<int>> testFunc = _ => throw new Exception();
-
-        Task<int> testTask = Task.FromResult("abc")
-          .Then(testFunc);
-
-        try
-        {
-          await testTask;
+          await Assert.ThrowsAsync<TaskCanceledException>(async () => await testTask);
         }
-        catch { }
+      }
+    }
 
-        Assert.True(testTask.IsFaulted);
+    public class ForBoth
+    {
+      public class ForTtoTNext
+      {
+        [Fact]
+        public async void ItShouldTransitionAFulfilledTask()
+        {
+          int expectedValue = 5;
+          int actualValue = await Task.FromResult("12345")
+            .Then(str => str.Length, Constant<Exception, int>(0));
+
+          Assert.Equal(expectedValue, actualValue);
+        }
+
+        [Fact]
+        public async void ItShouldTransitionAFaultBackIntoAFulfillment()
+        {
+          int expectedValue = 5;
+          int actualValue = await Task.FromException<string>(new Exception())
+            .Then(s => s.Length, Constant<Exception, int>(5));
+
+          Assert.Equal(expectedValue, actualValue);
+        }
       }
 
-      [Fact]
-      public async void ItShouldCaptureTaskCancellation()
+      public class ForTtoTaskTNext
       {
-        HttpClient testHttpClient = new MockHttpBuilder()
-          .WithHandler(messageCaseBuilder => messageCaseBuilder.AcceptAll()
-            .RespondWith((responseBuilder, _) => responseBuilder.WithStatusCode(HttpStatusCode.OK))
-          )
-          .BuildHttpClient();
-        ;
-        CancellationTokenSource testTokenSource = new();
-        testTokenSource.Cancel();
+        [Fact]
+        public async void ItShouldTransitionAFulfilledTask()
+        {
+          int expectedValue = 5;
+          int actualValue = await Task.FromResult("12345")
+            .Then(str => Task.FromResult(str.Length), Constant<Exception, Task<int>>(Task.FromResult(0)));
 
-        Task<string> testTask = Task.FromResult<string>("http://anything.anywhere")
-          .Then(async url => await testHttpClient.GetStringAsync(url, testTokenSource.Token));
+          Assert.Equal(expectedValue, actualValue);
+        }
 
-        await Assert.ThrowsAsync<TaskCanceledException>(async () => await testTask);
+        [Fact]
+        public async void ItShouldTransitionAFaultBackIntoAFulfillment()
+        {
+          int expectedValue = 5;
+          int actualValue = await Task.FromException<string>(new Exception())
+            .Then(s => Task.FromResult(s.Length), Constant<Exception, Task<int>>(Task.FromResult(5)));
+
+          Assert.Equal(expectedValue, actualValue);
+        }
+      }
+
+      public class ForTaskOnlyOnFulfillment
+      {
+        [Fact]
+        public async void ItShouldTransitionAFulfilledTask()
+        {
+          int expectedValue = 5;
+          int actualValue = await Task.FromResult("12345")
+            .Then(str => Task.FromResult(str.Length), Constant<Exception, int>(0));
+
+          Assert.Equal(expectedValue, actualValue);
+        }
+
+        [Fact]
+        public async void ItShouldTransitionAFaultBackIntoAFulfillment()
+        {
+          int expectedValue = 5;
+          int actualValue = await Task.FromException<string>(new Exception())
+            .Then(s => Task.FromResult(s.Length), Constant<Exception, int>(5));
+
+          Assert.Equal(expectedValue, actualValue);
+        }
+      }
+
+      public class ForTaskOnlyOnFaulted
+      {
+        [Fact]
+        public async void ItShouldTransitionAFulfilledTask()
+        {
+          int expectedValue = 5;
+          int actualValue = await Task.FromResult("12345")
+            .Then(str => str.Length, Constant<Exception, Task<int>>(Task.FromResult(0)));
+
+          Assert.Equal(expectedValue, actualValue);
+        }
+
+        [Fact]
+        public async void ItShouldTransitionAFaultBackIntoAFulfillment()
+        {
+          int expectedValue = 5;
+          int actualValue = await Task.FromException<string>(new Exception())
+            .Then(s => s.Length, Constant<Exception, Task<int>>(Task.FromResult(5)));
+
+          Assert.Equal(expectedValue, actualValue);
+        }
       }
     }
   }
@@ -448,7 +681,7 @@ public class TaskChainingTests
     }
   }
 
-  public class IfResolved
+  public class IfFulfilled
   {
     [Fact]
     public async void ItShouldPerformASideEffect()
@@ -457,7 +690,7 @@ public class TaskChainingTests
       int expectedValue = 5;
 
       await Task.FromResult(5)
-        .IfResolved(value =>
+        .IfFulfilled(value =>
         {
           actualValue = value;
         });
@@ -472,7 +705,7 @@ public class TaskChainingTests
       int expectedValue = 5;
 
       _ = Task.FromResult(5)
-        .IfResolved(value =>
+        .IfFulfilled(value =>
         {
           actualValue = value;
         });
@@ -491,7 +724,7 @@ public class TaskChainingTests
       try
       {
         await Task.FromException<int>(new ArgumentNullException())
-          .IfResolved(value =>
+          .IfFulfilled((int value) =>
           {
             actualValue = 5;
           });
@@ -510,7 +743,7 @@ public class TaskChainingTests
       int expectedValue = 0;
 
       _ = Task.FromException<int>(new ArgumentNullException())
-        .IfResolved(_ =>
+        .IfFulfilled((int _) =>
         {
           actualValue = 5;
         });
@@ -530,7 +763,7 @@ public class TaskChainingTests
       int expectedValue = 5;
 
       _ = Task.FromException<int>(new ArgumentNullException())
-        .IfRejected(_ =>
+        .IfFaulted((Exception _) =>
         {
           actualValue = 5;
         });
@@ -549,7 +782,7 @@ public class TaskChainingTests
       try
       {
         await Task.FromResult(5)
-          .IfRejected(_ =>
+          .IfFaulted((Exception _) =>
           {
             actualValue = 5;
           });
@@ -568,7 +801,7 @@ public class TaskChainingTests
       int expectedValue = 0;
 
       _ = Task.FromResult(5)
-        .IfRejected(_ =>
+        .IfFaulted((Exception _) =>
         {
           actualValue = 5;
         });
@@ -581,7 +814,7 @@ public class TaskChainingTests
 
   public class Retry
   {
-    public static RetryOptions TestRetryOptions = new(3, TimeSpan.FromMilliseconds(100), 2, (_, _, _) => { }, exception => true);
+    public static RetryParams TestRetryOptions = new(3, TimeSpan.FromMilliseconds(100), 2, (_, _, _) => { }, exception => true);
 
     public class ForTtoTNext
     {
@@ -631,7 +864,7 @@ public class TaskChainingTests
         {
           count++;
 
-          if (count < 3)
+          if (count < 2)
           {
             throw new Exception();
           }
@@ -642,7 +875,7 @@ public class TaskChainingTests
         };
         int expectedValue = 5;
 
-        int actualValue = await Task.FromResult("abcde").Retry(testFunc, Retry.TestRetryOptions);
+        int actualValue = await Task.FromResult("abcde").Retry(testFunc);
 
         Assert.Equal(expectedValue, actualValue);
       }
@@ -696,7 +929,7 @@ public class TaskChainingTests
         {
           count++;
 
-          if (count < 3)
+          if (count < 2)
           {
             throw new Exception();
           }
@@ -707,7 +940,7 @@ public class TaskChainingTests
         };
         int expectedValue = 5;
 
-        int actualValue = await Task.FromResult("abcde").Retry(testFunc, Retry.TestRetryOptions);
+        int actualValue = await Task.FromResult("abcde").Retry(testFunc);
 
         Assert.Equal(expectedValue, actualValue);
       }

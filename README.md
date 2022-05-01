@@ -12,6 +12,10 @@ Install RLC.TaskChaining as a NuGet package via an IDE package manager or using 
 
 ## API
 
+### Monadic Functions
+
+Monads are usually portrayed as a lot more complicated than they really have to be.  See [MONADS.md][] for a brief tutorial.  Note that this library contains both standard monadic functions (such as `ResultMap`(`fmap`), `Bind`, etc) and [bluebird][] Promise-style functions (`Then`, `Catch`, `Tap`, etc).  Some scenarios will lend themselves to one over the other.
+
 ### Chaining
 
 #### Then
@@ -52,9 +56,9 @@ Task.FromResult("not-a-url")          // Task<string>
   .Then(message => message.Length)    // Task<int>
 ```
 
-#### IfFulfilled/IfRejected/Tap
+#### IfFulfilled/IfFaulted/Tap
 
-The `IfFulfilled` and `IfRejected` methods can be used to perform side effects such as logging when the `Promise<T>` is in the fulfilled or faulted state, respectively.
+The `IfFulfilled` and `IfFaulted` methods can be used to perform side effects such as logging when the `Task<T>` is in the fulfilled or faulted state, respectively.
 
 ```c#
 HttpClient client;  // Assuming this is coming from an HttpClientFactory or injected or whatever
@@ -70,7 +74,7 @@ HttpClient client;  // Assuming this is coming from an HttpClientFactory or inje
 
 Task.FromResult("not-a-url")
   .Then(client.GetAsync)
-  .IfRejected(exception => _logger.LogException(exception, "Failed to get URL")
+  .IfFaulted(exception => _logger.LogException(exception, "Failed to get URL")
   .Catch(exception => exception.Message)
   .Then(message => message.Length);
 ```
@@ -138,4 +142,6 @@ Task.FromException<int>(new ArgumentException())
   ))
 ```
 
+[bluebird]: http://bluebirdjs.com/docs/getting-started.html
+[MONADS.md]: ./MONADS.md
 [nuget.org]: https://www.nuget.org/packages/RLC.TaskChaining/
