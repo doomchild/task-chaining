@@ -681,7 +681,7 @@ public class TaskChainingTests
     }
   }
 
-  public class IfResolved
+  public class IfFulfilled
   {
     [Fact]
     public async void ItShouldPerformASideEffect()
@@ -690,7 +690,7 @@ public class TaskChainingTests
       int expectedValue = 5;
 
       await Task.FromResult(5)
-        .IfResolved(value =>
+        .IfFulfilled(value =>
         {
           actualValue = value;
         });
@@ -705,7 +705,7 @@ public class TaskChainingTests
       int expectedValue = 5;
 
       _ = Task.FromResult(5)
-        .IfResolved(value =>
+        .IfFulfilled(value =>
         {
           actualValue = value;
         });
@@ -724,7 +724,7 @@ public class TaskChainingTests
       try
       {
         await Task.FromException<int>(new ArgumentNullException())
-          .IfResolved(value =>
+          .IfFulfilled((int value) =>
           {
             actualValue = 5;
           });
@@ -743,7 +743,7 @@ public class TaskChainingTests
       int expectedValue = 0;
 
       _ = Task.FromException<int>(new ArgumentNullException())
-        .IfResolved(_ =>
+        .IfFulfilled((int _) =>
         {
           actualValue = 5;
         });
@@ -763,7 +763,7 @@ public class TaskChainingTests
       int expectedValue = 5;
 
       _ = Task.FromException<int>(new ArgumentNullException())
-        .IfRejected(_ =>
+        .IfFaulted((Exception _) =>
         {
           actualValue = 5;
         });
@@ -782,7 +782,7 @@ public class TaskChainingTests
       try
       {
         await Task.FromResult(5)
-          .IfRejected(_ =>
+          .IfFaulted((Exception _) =>
           {
             actualValue = 5;
           });
@@ -801,7 +801,7 @@ public class TaskChainingTests
       int expectedValue = 0;
 
       _ = Task.FromResult(5)
-        .IfRejected(_ =>
+        .IfFaulted((Exception _) =>
         {
           actualValue = 5;
         });

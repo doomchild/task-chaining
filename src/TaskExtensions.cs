@@ -36,19 +36,19 @@ public static class TaskExtensions
   /// </summary>
   /// <remarks>This method allows you to specify a transformation for both sides (fulfilled and faulted) of a
   /// <see name="Task{T}"/>.  If the input <see name="Task{T}"/> is fulfilled, the <code>onFulfilled</code> function
-  /// will be executed, otherwise the <code>onRejected</code> function will be executed.  Note that this method
+  /// will be executed, otherwise the <code>onFaulted</code> function will be executed.  Note that this method
   /// does NOT allow a faulted <see name="Task{T}"/> to be transitioned back into a fulfilled one.</remarks>
   /// <typeparam name="T">The task's underlying type.</typeparam>
   /// <typeparam name="TNext">The transformed type.</typeparam>
-  /// <param name="onRejected">The function to run if the task is faulted.</param>
+  /// <param name="onFaulted">The function to run if the task is faulted.</param>
   /// <param name="onFulfilled">The function to run if the task is fulfilled.</param>
   /// <returns>The transformed task.</returns>
   public static Task<TNext> BiMap<T, TNext>(
     this Task<T> task,
-    Func<Exception, Exception> onRejected,
+    Func<Exception, Exception> onFaulted,
     Func<T, TNext> onFulfilled
   ) => task.BiBind(
-    Pipe2(onRejected, Task.FromException<TNext>),
+    Pipe2(onFaulted, Task.FromException<TNext>),
     Pipe2(onFulfilled, Task.FromResult)
   );
 
@@ -94,10 +94,10 @@ public static class TaskExtensions
   /// This can be used to transform an <see name="Exception"/> to add context or to use a custom exception
   /// type.</remarks>
   /// <typeparam name="T">The task's underlying type.</typeparam>
-  /// <param name="onRejected">The transformation function.</param>
+  /// <param name="onFaulted">The transformation function.</param>
   /// <returns>The transformated task.</returns>
-  public static Task<T> ExceptionMap<T>(this Task<T> task, Func<Exception, Exception> onRejected)
-    => task.BiMap(onRejected, Identity);
+  public static Task<T> ExceptionMap<T>(this Task<T> task, Func<Exception, Exception> onFaulted)
+    => task.BiMap(onFaulted, Identity);
 
   /// <summary>
   /// Allows a fulfilled <see name="Task{T}"/> to be transitioned to a faulted one if the <paramref name="predicate"/>
@@ -178,10 +178,10 @@ public static class TaskExtensions
   /// </summary>
   /// <remarks>This method is an alias to <code>Task.Recover</code>.</remarks>
   /// <typeparam name="T">The task's underlying type.</typeparam>
-  /// <param name="onRejected">The function to convert an <see name="Exception"/> into a
+  /// <param name="onFaulted">The function to convert an <see name="Exception"/> into a
   /// <typeparamref name="T"/>.</param>
   /// <returns>The transformed task.</returns>
-  public static Task<T> Catch<T>(this Task<T> task, Func<Exception, T> onRejected) => task.Recover(onRejected);
+  public static Task<T> Catch<T>(this Task<T> task, Func<Exception, T> onFaulted) => task.Recover(onFaulted);
 
   /// <summary>
   /// Allows a faulted <see name="Task{T}"/> to be transitioned to a fulfilled one.
@@ -189,10 +189,10 @@ public static class TaskExtensions
   /// <remarks>This method is an alias to <code>Task.Recover</code> in order to line up with the expected Promise
   /// API.</remarks>
   /// <typeparam name="T">The task's underlying type.</typeparam>
-  /// <param name="onRejected">The function to convert an <see name="Exception"/> into a
+  /// <param name="onFaulted">The function to convert an <see name="Exception"/> into a
   /// <typeparamref name="T"/>.</param>
   /// <returns>The transformed task.</returns>
-  public static Task<T> Catch<T>(this Task<T> task, Func<Exception, Task<T>> onRejected) => task.Recover(onRejected);
+  public static Task<T> Catch<T>(this Task<T> task, Func<Exception, Task<T>> onFaulted) => task.Recover(onFaulted);
 
   /// <summary>
   /// Performs an action if the <see name="Task{T}"/> is in a fulfilled state.
@@ -200,7 +200,7 @@ public static class TaskExtensions
   /// <typeparam name="T">The task's underlying type.</typeparam>
   /// <param name="consumer">The action to perform if the task is fulfilled.</param>
   /// <returns>The task.</returns>
-  public static Task<T> IfResolved<T>(this Task<T> task, Action<T> consumer)
+  public static Task<T> IfFulfilled<T>(this Task<T> task, Action<T> consumer)
     => task.ResultMap(TaskStatics.Tap(consumer));
 
   /// <summary>
@@ -209,8 +209,8 @@ public static class TaskExtensions
   /// <typeparam name="T">The task's underlying type.</typeparam>
   /// <param name="consumer">The action to perform if the task is faulted.</param>
   /// <returns>The task.</returns>
-  public static Task<T> IfRejected<T>(this Task<T> task, Action<Exception> onRejected)
-    => task.ExceptionMap(TaskStatics.Tap(onRejected));
+  public static Task<T> IfFaulted<T>(this Task<T> task, Action<Exception> onFaulted)
+    => task.ExceptionMap(TaskStatics.Tap(onFaulted));
 
   public static Task<TNext> Retry<T, TNext>(
     this Task<T> task,
@@ -234,10 +234,10 @@ public static class TaskExtensions
   /// value, such as logging.</remarks>
   /// <typeparam name="T">The task's underlying type.</typeparam>
   /// <param name="onFulfilled">The action to perform if the task is fulfilled.</param>
-  /// <param name="onRejected">The action to perform if the task is faulted.</param>
+  /// <param name="onFaulted">The action to perform if the task is faulted.</param>
   /// <returns>The task.</returns>
-  public static Task<T> Tap<T>(this Task<T> task, Action<T> onFulfilled, Action<Exception> onRejected)
-    => task.IfResolved(onFulfilled).IfRejected(onRejected);
+  public static Task<T> Tap<T>(this Task<T> task, Action<T> onFulfilled, Action<Exception> onFaulted)
+    => task.IfFulfilled(onFulfilled).IfFaulted(onFaulted);
 
   /// <summary>
   /// Transforms the value in a fulfilled <see name="Task{T}"/> to another type.
@@ -268,14 +268,14 @@ public static class TaskExtensions
   /// <typeparam name="T">The task's underlying type.</typeparam>
   /// <typeparam name="TNext">The transformed type.</typeparam>
   /// <param name="onFulfilled">The transformation function for a fulfilled task.</param>
-  /// <param name="onRejected">The transformation function for a faulted task.</param>
+  /// <param name="onFaulted">The transformation function for a faulted task.</param>
   /// <returns>The transformed task.</returns>
   public static Task<TNext> Then<T, TNext>(
     this Task<T> task,
     Func<T, TNext> onFulfilled,
-    Func<Exception, TNext> onRejected
+    Func<Exception, TNext> onFaulted
   ) => task.BiBind(
-    Pipe2(onRejected, Task.FromResult),
+    Pipe2(onFaulted, Task.FromResult),
     Pipe2(onFulfilled, Task.FromResult)
   );
 
@@ -286,13 +286,13 @@ public static class TaskExtensions
   /// <typeparam name="T">The task's underlying type.</typeparam>
   /// <typeparam name="TNext">The transformed type.</typeparam>
   /// <param name="onFulfilled">The transformation function for a fulfilled task.</param>
-  /// <param name="onRejected">The transformation function for a faulted task.</param>
+  /// <param name="onFaulted">The transformation function for a faulted task.</param>
   /// <returns>The transformed task.</returns>
   public static Task<TNext> Then<T, TNext>(
     this Task<T> task,
     Func<T, TNext> onFulfilled,
-    Func<Exception, Task<TNext>> onRejected
-  ) => task.BiBind(onRejected, Pipe2(onFulfilled, Task.FromResult));
+    Func<Exception, Task<TNext>> onFaulted
+  ) => task.BiBind(onFaulted, Pipe2(onFulfilled, Task.FromResult));
 
   /// <summary>
   /// Transforms both sides of a <see name="Task{T}"/>.
@@ -301,13 +301,13 @@ public static class TaskExtensions
   /// <typeparam name="T">The task's underlying type.</typeparam>
   /// <typeparam name="TNext">The transformed type.</typeparam>
   /// <param name="onFulfilled">The transformation function for a fulfilled task.</param>
-  /// <param name="onRejected">The transformation function for a faulted task.</param>
+  /// <param name="onFaulted">The transformation function for a faulted task.</param>
   /// <returns>The transformed task.</returns>
   public static Task<TNext> Then<T, TNext>(
     this Task<T> task,
     Func<T, Task<TNext>> onFulfilled,
-    Func<Exception, TNext> onRejected
-  ) => task.BiBind(Pipe2(onRejected, Task.FromResult), onFulfilled);
+    Func<Exception, TNext> onFaulted
+  ) => task.BiBind(Pipe2(onFaulted, Task.FromResult), onFulfilled);
 
   /// <summary>
   /// Transforms both sides of a <see name="Task{T}"/>.
@@ -316,11 +316,11 @@ public static class TaskExtensions
   /// <typeparam name="T">The task's underlying type.</typeparam>
   /// <typeparam name="TNext">The transformed type.</typeparam>
   /// <param name="onFulfilled">The transformation function for a fulfilled task.</param>
-  /// <param name="onRejected">The transformation function for a faulted task.</param>
+  /// <param name="onFaulted">The transformation function for a faulted task.</param>
   /// <returns>The transformed task.</returns>
   public static Task<TNext> Then<T, TNext>(
     this Task<T> task,
     Func<T, Task<TNext>> onFulfilled,
-    Func<Exception, Task<TNext>> onRejected
-  ) => task.BiBind(onRejected, onFulfilled);
+    Func<Exception, Task<TNext>> onFaulted
+  ) => task.BiBind(onFaulted, onFulfilled);
 }
