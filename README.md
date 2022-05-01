@@ -12,6 +12,10 @@ Install RLC.TaskChaining as a NuGet package via an IDE package manager or using 
 
 ## API
 
+### Monadic Functions
+
+Monads are usually portrayed as a lot more complicated than they really have to be.  See [MONADS.md][] for a brief tutorial.  Note that this library contains both standard monadic functions (such as `ResultMap`(`fmap`), `Bind`, etc) and [bluebird][] Promise-style functions (`Then`, `Catch`, `Tap`, etc).  Some scenarios will lend themselves to one over the other.
+
 ### Chaining
 
 #### Then
@@ -138,4 +142,6 @@ Task.FromException<int>(new ArgumentException())
   ))
 ```
 
+[bluebird]: http://bluebirdjs.com/docs/getting-started.html
+[MONADS.md]: ./MONADS.md
 [nuget.org]: https://www.nuget.org/packages/RLC.TaskChaining/
