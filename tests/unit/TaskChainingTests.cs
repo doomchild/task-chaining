@@ -14,6 +14,52 @@ namespace RLC.TaskChainingTests;
 
 public class TaskChainingTests
 {
+  public class Ap
+  {
+    private int TestFunc(string s) => s.Length;
+
+    [Fact]
+    public async void ItShouldTransition()
+    {
+      int expectedValue = 5;
+      int actualValue = await Task.FromResult("12345")
+        .Ap(Task.FromResult(TestFunc));
+
+      Assert.Equal(expectedValue, actualValue);
+    }
+
+    [Fact]
+    public async void ItShouldContinueAsyncTasks()
+    {
+      int expectedValue = 5;
+      int actualValue = 0;
+
+      _ = Task.FromResult("12345")
+        .Ap(Task.FromResult(TestFunc))
+        .IfFulfilled(async value =>
+        {
+          await Task.Delay(1);
+
+          actualValue = value;
+        });
+
+      await Task.Delay(10);
+
+      Assert.Equal(expectedValue, actualValue);
+    }
+
+    [Fact]
+    public async void ItShouldNotRunForAFault()
+    {
+      Exception testException = new(Guid.NewGuid().ToString());
+
+      await Assert.ThrowsAsync<Exception>(
+        async () => await Task.FromException<string>(testException)
+          .Ap(Task.FromResult(TestFunc))
+      );
+    }
+  }
+
   public class Alt
   {
     public class WithRawValue
