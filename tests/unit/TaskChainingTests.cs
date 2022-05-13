@@ -16,52 +16,106 @@ public class TaskChainingTests
 {
   public class Ap
   {
-    private int TestFunc(string s, int value) => value + s.Length;
-
-    [Fact]
-    public async void ItShouldTransition()
+    public class WithRawReturningFunc
     {
-      string testValue = "12345";
-      int expectedValue = 10;
-      int actualValue = await Task.FromResult(testValue)
-        .Then(s => s.Length)
-        .Ap<int, string, int>(Task.FromResult(TestFunc), testValue);
+      private int TestFunc(string s, int value) => value + s.Length;
 
-      Assert.Equal(expectedValue, actualValue);
-    }
+      [Fact]
+      public async void ItShouldTransition()
+      {
+        string testValue = "12345";
+        int expectedValue = 10;
+        int actualValue = await Task.FromResult(testValue)
+          .Then(s => s.Length)
+          .Ap<int, string, int>(Task.FromResult(TestFunc), testValue);
 
-    [Fact]
-    public async void ItShouldContinueAsyncTasks()
-    {
-      string testValue = "12345";
-      int expectedValue = 10;
-      int actualValue = 0;
+        Assert.Equal(expectedValue, actualValue);
+      }
 
-      _ = Task.FromResult(testValue)
-        .Then(s => s.Length)
-        .Ap(Task.FromResult(TestFunc), testValue)
-        .IfFulfilled(async value =>
-        {
-          await Task.Delay(1);
+      [Fact]
+      public async void ItShouldContinueAsyncTasks()
+      {
+        string testValue = "12345";
+        int expectedValue = 10;
+        int actualValue = 0;
 
-          actualValue = value;
-        });
-
-      await Task.Delay(10);
-
-      Assert.Equal(expectedValue, actualValue);
-    }
-
-    [Fact]
-    public async void ItShouldNotRunForAFault()
-    {
-      string testValue = "12345";
-      Exception testException = new(Guid.NewGuid().ToString());
-
-      await Assert.ThrowsAsync<Exception>(
-        async () => await Task.FromException<int>(testException)
+        _ = Task.FromResult(testValue)
+          .Then(s => s.Length)
           .Ap(Task.FromResult(TestFunc), testValue)
-      );
+          .IfFulfilled(async value =>
+          {
+            await Task.Delay(1);
+
+            actualValue = value;
+          });
+
+        await Task.Delay(10);
+
+        Assert.Equal(expectedValue, actualValue);
+      }
+
+      [Fact]
+      public async void ItShouldNotRunForAFault()
+      {
+        string testValue = "12345";
+        Exception testException = new(Guid.NewGuid().ToString());
+
+        await Assert.ThrowsAsync<Exception>(
+          async () => await Task.FromException<int>(testException)
+            .Ap(Task.FromResult(TestFunc), testValue)
+        );
+      }
+    }
+
+    public class WithTaskReturningFunc
+    {
+      private Task<int> TestFunc(string s, int value) => Task.FromResult(value + s.Length);
+
+      [Fact]
+      public async void ItShouldTransition()
+      {
+        string testValue = "12345";
+        int expectedValue = 10;
+        int actualValue = await Task.FromResult(testValue)
+          .Then(s => s.Length)
+          .Ap<int, string, int>(Task.FromResult(TestFunc), testValue);
+
+        Assert.Equal(expectedValue, actualValue);
+      }
+
+      [Fact]
+      public async void ItShouldContinueAsyncTasks()
+      {
+        string testValue = "12345";
+        int expectedValue = 10;
+        int actualValue = 0;
+
+        _ = Task.FromResult(testValue)
+          .Then(s => s.Length)
+          .Ap(Task.FromResult(TestFunc), testValue)
+          .IfFulfilled(async value =>
+          {
+            await Task.Delay(1);
+
+            actualValue = value;
+          });
+
+        await Task.Delay(10);
+
+        Assert.Equal(expectedValue, actualValue);
+      }
+
+      [Fact]
+      public async void ItShouldNotRunForAFault()
+      {
+        string testValue = "12345";
+        Exception testException = new(Guid.NewGuid().ToString());
+
+        await Assert.ThrowsAsync<Exception>(
+          async () => await Task.FromException<int>(testException)
+            .Ap(Task.FromResult(TestFunc), testValue)
+        );
+      }
     }
   }
 
