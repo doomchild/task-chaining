@@ -10,13 +10,13 @@ public static class TaskExtensions
   #region Monadic Functions
 
   /// <summary>
-	/// Monadic 'alt'.
-	/// </summary>
+  /// Monadic 'alt'.
+  /// </summary>
   /// <remarks>This method allows you to swap a faulted <see name="Task{T}"/> with an alternate
   /// <see name="Task{T}"/>.</remarks>
-	/// <typeparam name="T">The task's underlying type.</typeparam>
-	/// <param name="other">The replacement <see name="Task{T}"/>.</param>
-	/// <returns>The alternative value if the original <see name="Task{T}"/> was faulted, otherwise the original
+  /// <typeparam name="T">The task's underlying type.</typeparam>
+  /// <param name="other">The replacement <see name="Task{T}"/>.</param>
+  /// <returns>The alternative value if the original <see name="Task{T}"/> was faulted, otherwise the original
   /// <see name="Task{T}"/>.</returns>
   public static Task<T> Alt<T>(this Task<T> task, Task<T> other) => task.IsFaulted ? other : task;
 
@@ -30,6 +30,18 @@ public static class TaskExtensions
   /// <returns>The alternative value if the original <see name="Task{T}"/> was faulted, otherwise the original
   /// <see name="Task{T}"/>.</returns>
   public static Task<T> Alt<T>(this Task<T> task, Func<Task<T>> supplier) => task.IsFaulted ? supplier() : task;
+
+  /// <summary>
+  /// Monadic 'ap'.
+  /// </summary>
+  /// <typeparam name="T">The task's underlying type.</typeparam>
+  /// <typeparam name="TNext">The transformed type.</typeparam>
+  /// <param name="morphismTask">A <see cref="Task{Func{T, TNext}}"/> containing the transformation function. </param>
+  /// <returns>The transformed task.</returns>
+  public static Task<TNext> Ap<T, TNext>(
+    this Task<T> task,
+    Task<Func<T, TNext>> morphismTask
+  ) => task.Bind(async value => (await morphismTask)(value));
 
   /// <summary>
   /// Monadic 'bimap'.
