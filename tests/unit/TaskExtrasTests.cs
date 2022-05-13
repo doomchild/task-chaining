@@ -182,7 +182,7 @@ public class TaskExtrasTests
     public async Task ItShouldWaitTheConfiguredTime()
     {
       Stopwatch testStopWatch = new();
-      int testDeferTimeMilliseconds = 10;
+      int testDeferTimeMilliseconds = 15;
 
       testStopWatch.Start();
 
@@ -190,76 +190,140 @@ public class TaskExtrasTests
 
       testStopWatch.Stop();
 
-      Assert.InRange(
-        testStopWatch.ElapsedMilliseconds,
-        testDeferTimeMilliseconds,
-        testDeferTimeMilliseconds * 2
-      );
+      Assert.True(testStopWatch.ElapsedMilliseconds >= testDeferTimeMilliseconds);
     }
   }
 
   public class Retry
   {
-    [Fact]
-    public async Task ItShouldMakeTheConfiguredNumberOfAttempts()
+    public class WithRawReturningFunc
     {
-      int actualValue = 0;
-      Func<int> testFunc = () =>
+      [Fact]
+      public async Task ItShouldMakeTheConfiguredNumberOfAttempts()
       {
-        actualValue += 1;
+        int actualValue = 0;
+        Func<int> testFunc = () =>
+        {
+          actualValue += 1;
 
-        throw new Exception();
-      };
-      int expectedValue = 3;
+          throw new Exception();
+        };
+        int expectedValue = 3;
 
-      try
-      {
-        await TaskExtras.Retry(testFunc);
+        try
+        {
+          await TaskExtras.Retry(testFunc);
+        }
+        catch (RetryException)
+        {
+        }
+
+        Assert.Equal(expectedValue, actualValue);
       }
-      catch(RetryException)
+
+      [Fact]
+      public async Task ItShouldThrowARetryExceptionAfterTheConfiguredNumberOfAttempts()
       {
-      }
+        string expectedMessage = "Retries exhausted after 3 attempts";
 
-      Assert.Equal(expectedValue, actualValue);
-    }
-
-    [Fact]
-    public async Task ItShouldThrowARetryExceptionAfterTheConfiguredNumberOfAttempts()
-    {
-      string expectedMessage = "Retries exhausted after 3 attempts";
-
-      Func<int> testFunc = () =>
-      {
-        throw new Exception();
-      };
-
-      Exception thrownException = await Assert.ThrowsAsync<RetryException>(async () => await TaskExtras.Retry(testFunc));
-
-      Assert.Equal(expectedMessage, thrownException.Message);
-    }
-
-    [Fact]
-    public async Task ItShouldPassIfARetrySucceeds()
-    {
-      int actualValue = 0;
-      Func<int> testFunc = () =>
-      {
-        actualValue += 1;
-
-        if (actualValue < 3)
+        Func<int> testFunc = () =>
         {
           throw new Exception();
-        }
-        else
+        };
+
+        Exception thrownException = await Assert.ThrowsAsync<RetryException>(async () => await TaskExtras.Retry(testFunc));
+
+        Assert.Equal(expectedMessage, thrownException.Message);
+      }
+
+      [Fact]
+      public async Task ItShouldPassIfARetrySucceeds()
+      {
+        int actualValue = 0;
+        Func<int> testFunc = () =>
         {
-          return actualValue;
+          actualValue += 1;
+
+          if (actualValue < 3)
+          {
+            throw new Exception();
+          }
+          else
+          {
+            return actualValue;
+          }
+        };
+        int expectedValue = 3;
+
+        await TaskExtras.Retry(testFunc);
+
+        Assert.Equal(expectedValue, actualValue);
+      }
+    }
+
+    public class WithTaskReturningFunc
+    {
+      [Fact]
+      public async Task ItShouldMakeTheConfiguredNumberOfAttempts()
+      {
+        int actualValue = 0;
+        Func<Task<int>> testFunc = () =>
+        {
+          actualValue += 1;
+
+          throw new Exception();
+        };
+        int expectedValue = 3;
+
+        try
+        {
+          await TaskExtras.Retry(testFunc);
         }
-      };
-      int expectedValue = 3;
+        catch (RetryException)
+        {
+        }
 
-      await TaskExtras.Retry(testFunc);
+        Assert.Equal(expectedValue, actualValue);
+      }
 
-      Assert.Equal(expectedValue, actualValue);
+      [Fact]
+      public async Task ItShouldThrowARetryExceptionAfterTheConfiguredNumberOfAttempts()
+      {
+        string expectedMessage = "Retries exhausted after 3 attempts";
+
+        Func<Task<int>> testFunc = () =>
+        {
+          throw new Exception();
+        };
+
+        Exception thrownException = await Assert.ThrowsAsync<RetryException>(async () => await TaskExtras.Retry(testFunc));
+
+        Assert.Equal(expectedMessage, thrownException.Message);
+      }
+
+      [Fact]
+      public async Task ItShouldPassIfARetrySucceeds()
+      {
+        int actualValue = 0;
+        Func<Task<int>> testFunc = () =>
+        {
+          actualValue += 1;
+
+          if (actualValue < 3)
+          {
+            throw new Exception();
+          }
+          else
+          {
+            return Task.FromResult(actualValue);
+          }
+        };
+        int expectedValue = 3;
+
+        await TaskExtras.Retry(testFunc);
+
+        Assert.Equal(expectedValue, actualValue);
+      }
     }
   }
 }
