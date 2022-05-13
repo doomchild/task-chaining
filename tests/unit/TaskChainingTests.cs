@@ -16,47 +16,106 @@ public class TaskChainingTests
 {
   public class Ap
   {
-    private int TestFunc(string s) => s.Length;
-
-    [Fact]
-    public async void ItShouldTransition()
+    public class WithRawReturningFunc
     {
-      int expectedValue = 5;
-      int actualValue = await Task.FromResult("12345")
-        .Ap(Task.FromResult(TestFunc));
+      private int TestFunc(string s, int value) => value + s.Length;
 
-      Assert.Equal(expectedValue, actualValue);
+      [Fact]
+      public async void ItShouldTransition()
+      {
+        string testValue = "12345";
+        int expectedValue = 10;
+        int actualValue = await Task.FromResult(testValue)
+          .Then(s => s.Length)
+          .Ap<int, string, int>(Task.FromResult(TestFunc), testValue);
+
+        Assert.Equal(expectedValue, actualValue);
+      }
+
+      [Fact]
+      public async void ItShouldContinueAsyncTasks()
+      {
+        string testValue = "12345";
+        int expectedValue = 10;
+        int actualValue = 0;
+
+        _ = Task.FromResult(testValue)
+          .Then(s => s.Length)
+          .Ap(Task.FromResult(TestFunc), testValue)
+          .IfFulfilled(async value =>
+          {
+            await Task.Delay(1);
+
+            actualValue = value;
+          });
+
+        await Task.Delay(10);
+
+        Assert.Equal(expectedValue, actualValue);
+      }
+
+      [Fact]
+      public async void ItShouldNotRunForAFault()
+      {
+        string testValue = "12345";
+        Exception testException = new(Guid.NewGuid().ToString());
+
+        await Assert.ThrowsAsync<Exception>(
+          async () => await Task.FromException<int>(testException)
+            .Ap(Task.FromResult(TestFunc), testValue)
+        );
+      }
     }
 
-    [Fact]
-    public async void ItShouldContinueAsyncTasks()
+    public class WithTaskReturningFunc
     {
-      int expectedValue = 5;
-      int actualValue = 0;
+      private Task<int> TestFunc(string s, int value) => Task.FromResult(value + s.Length);
 
-      _ = Task.FromResult("12345")
-        .Ap(Task.FromResult(TestFunc))
-        .IfFulfilled(async value =>
-        {
-          await Task.Delay(1);
+      [Fact]
+      public async void ItShouldTransition()
+      {
+        string testValue = "12345";
+        int expectedValue = 10;
+        int actualValue = await Task.FromResult(testValue)
+          .Then(s => s.Length)
+          .Ap<int, string, int>(Task.FromResult(TestFunc), testValue);
 
-          actualValue = value;
-        });
+        Assert.Equal(expectedValue, actualValue);
+      }
 
-      await Task.Delay(10);
+      [Fact]
+      public async void ItShouldContinueAsyncTasks()
+      {
+        string testValue = "12345";
+        int expectedValue = 10;
+        int actualValue = 0;
 
-      Assert.Equal(expectedValue, actualValue);
-    }
+        _ = Task.FromResult(testValue)
+          .Then(s => s.Length)
+          .Ap(Task.FromResult(TestFunc), testValue)
+          .IfFulfilled(async value =>
+          {
+            await Task.Delay(1);
 
-    [Fact]
-    public async void ItShouldNotRunForAFault()
-    {
-      Exception testException = new(Guid.NewGuid().ToString());
+            actualValue = value;
+          });
 
-      await Assert.ThrowsAsync<Exception>(
-        async () => await Task.FromException<string>(testException)
-          .Ap(Task.FromResult(TestFunc))
-      );
+        await Task.Delay(10);
+
+        Assert.Equal(expectedValue, actualValue);
+      }
+
+      [Fact]
+      public async void ItShouldNotRunForAFault()
+      {
+        string testValue = "12345";
+        Exception testException = new(Guid.NewGuid().ToString());
+
+        await Assert.ThrowsAsync<Exception>(
+          async () => await Task.FromException<int>(testException)
+            .Ap(Task.FromResult(TestFunc), testValue)
+        );
+      }
     }
   }
 
@@ -325,7 +384,7 @@ public class TaskChainingTests
               return actualValue;
             });
 
-          await Task.Delay(100);
+          await Task.Delay(10);
 
           Assert.Equal(expectedValue, actualValue);
         }
@@ -419,7 +478,7 @@ public class TaskChainingTests
               return Task.FromResult(actualValue);
             });
 
-          await Task.Delay(100);
+          await Task.Delay(10);
 
           Assert.Equal(expectedValue, actualValue);
         }
@@ -451,7 +510,7 @@ public class TaskChainingTests
               return Task.FromResult(str.Length);
             });
 
-          await Task.Delay(100);
+          await Task.Delay(10);
 
           Assert.Equal(expectedValue, actualValue);
         }
@@ -472,7 +531,7 @@ public class TaskChainingTests
               return Task.FromResult(actualValue);
             });
 
-          await Task.Delay(100);
+          await Task.Delay(10);
 
           Assert.Equal(expectedValue, actualValue);
         }
@@ -701,7 +760,7 @@ public class TaskChainingTests
           _ => { }
         );
 
-      await Task.Delay(100);
+      await Task.Delay(10);
 
       Assert.Equal(expectedValue, actualValue);
     }
@@ -721,7 +780,7 @@ public class TaskChainingTests
           }
         );
 
-      await Task.Delay(100);
+      await Task.Delay(10);
 
       Assert.Equal(expectedValue, actualValue);
     }
@@ -756,7 +815,7 @@ public class TaskChainingTests
           actualValue = value;
         });
 
-      await Task.Delay(100);
+      await Task.Delay(10);
 
       Assert.Equal(expectedValue, actualValue);
     }
@@ -794,7 +853,7 @@ public class TaskChainingTests
           actualValue = 5;
         });
 
-      await Task.Delay(100);
+      await Task.Delay(10);
 
       Assert.Equal(expectedValue, actualValue);
     }
@@ -814,7 +873,7 @@ public class TaskChainingTests
           actualValue = 5;
         });
 
-      await Task.Delay(100);
+      await Task.Delay(10);
 
       Assert.Equal(expectedValue, actualValue);
     }
@@ -852,7 +911,7 @@ public class TaskChainingTests
           actualValue = 5;
         });
 
-      await Task.Delay(100);
+      await Task.Delay(10);
 
       Assert.Equal(expectedValue, actualValue);
     }
@@ -860,7 +919,7 @@ public class TaskChainingTests
 
   public class Retry
   {
-    public static RetryParams TestRetryOptions = new(3, TimeSpan.FromMilliseconds(100), 2, (_, _, _) => { }, exception => true);
+    public static RetryParams TestRetryOptions = new(3, TimeSpan.FromMilliseconds(10), 2, (_, _, _) => { }, exception => true);
 
     public class ForTtoTNext
     {
