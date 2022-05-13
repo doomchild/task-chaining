@@ -16,14 +16,16 @@ public class TaskChainingTests
 {
   public class Ap
   {
-    private int TestFunc(string s) => s.Length;
+    private int TestFunc(string s, int value) => value + s.Length;
 
     [Fact]
     public async void ItShouldTransition()
     {
-      int expectedValue = 5;
-      int actualValue = await Task.FromResult("12345")
-        .Ap(Task.FromResult(TestFunc));
+      string testValue = "12345";
+      int expectedValue = 10;
+      int actualValue = await Task.FromResult(testValue)
+        .Then(s => s.Length)
+        .Ap<int, string, int>(Task.FromResult(TestFunc), testValue);
 
       Assert.Equal(expectedValue, actualValue);
     }
@@ -31,11 +33,13 @@ public class TaskChainingTests
     [Fact]
     public async void ItShouldContinueAsyncTasks()
     {
-      int expectedValue = 5;
+      string testValue = "12345";
+      int expectedValue = 10;
       int actualValue = 0;
 
-      _ = Task.FromResult("12345")
-        .Ap(Task.FromResult(TestFunc))
+      _ = Task.FromResult(testValue)
+        .Then(s => s.Length)
+        .Ap(Task.FromResult(TestFunc), testValue)
         .IfFulfilled(async value =>
         {
           await Task.Delay(1);
@@ -51,11 +55,12 @@ public class TaskChainingTests
     [Fact]
     public async void ItShouldNotRunForAFault()
     {
+      string testValue = "12345";
       Exception testException = new(Guid.NewGuid().ToString());
 
       await Assert.ThrowsAsync<Exception>(
-        async () => await Task.FromException<string>(testException)
-          .Ap(Task.FromResult(TestFunc))
+        async () => await Task.FromException<int>(testException)
+          .Ap(Task.FromResult(TestFunc), testValue)
       );
     }
   }

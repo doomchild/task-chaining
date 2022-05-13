@@ -35,13 +35,29 @@ public static class TaskExtensions
   /// Monadic 'ap'.
   /// </summary>
   /// <typeparam name="T">The task's underlying type.</typeparam>
+  /// <typeparams name="TR">The type of the other input value to <paramref name="morphismTask"/>.</typeparam>
   /// <typeparam name="TNext">The transformed type.</typeparam>
-  /// <param name="morphismTask">A <see cref="Task{Func{T, TNext}}"/> containing the transformation function. </param>
+  /// <param name="morphismTask">A <see cref="Task{Func{T, TR, TNext}}"/> containing the transformation function. </param>
   /// <returns>The transformed task.</returns>
-  public static Task<TNext> Ap<T, TNext>(
+  public static Task<TNext> Ap<T, TR, TNext>(
     this Task<T> task,
-    Task<Func<T, TNext>> morphismTask
-  ) => task.Bind(async value => (await morphismTask)(value));
+    Task<Func<TR, T, TNext>> morphismTask,
+    TR otherValue
+  ) => task.Bind(async value => (await morphismTask)(otherValue, value));
+
+  /// <summary>
+  /// Monadic 'ap'.
+  /// </summary>
+  /// <typeparam name="T">The task's underlying type.</typeparam>
+  /// <typeparams name="TR">The type of the other input value to <paramref name="morphismTask"/>.</typeparam>
+  /// <typeparam name="TNext">The transformed type.</typeparam>
+  /// <param name="morphismTask">A <see cref="Task{Func{T, TR, TNext}}"/> containing the transformation function. </param>
+  /// <returns>The transformed task.</returns>
+  public static Task<TNext> Ap<T, TR, TNext>(
+    this Task<T> task,
+    Task<Func<TR, T, Task<TNext>>> morphismTask,
+    TR otherValue
+  ) => task.Bind(async value => (await morphismTask)(otherValue, value)).Unwrap();
 
   /// <summary>
   /// Monadic 'bimap'.
