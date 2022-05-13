@@ -34,7 +34,7 @@ public class TaskExtrasTests
         value => new ArgumentException()
       )(1);
 
-      await Task.Delay(100);
+      await Task.Delay(10);
 
       Assert.True(testTask.IsFaulted);
     }
@@ -47,7 +47,7 @@ public class TaskExtrasTests
         value => new ArgumentException()
       )(1);
 
-      await Task.Delay(100);
+      await Task.Delay(10);
 
       await Assert.ThrowsAsync<ArgumentException>(async () => await testTask);
     }
@@ -60,7 +60,7 @@ public class TaskExtrasTests
         value => new ArgumentException()
       )(2);
 
-      await Task.Delay(100);
+      await Task.Delay(10);
 
       Assert.True(testTask.IsCompletedSuccessfully);
     }
@@ -127,7 +127,7 @@ public class TaskExtrasTests
           value => value.Message.Length
         )(new ArgumentException());
 
-        await Task.Delay(100);
+        await Task.Delay(10);
 
         Assert.True(testTask.IsCompletedSuccessfully);
       }
@@ -140,7 +140,7 @@ public class TaskExtrasTests
           value => value.Message.Length
         )(new NullReferenceException());
 
-        await Task.Delay(100);
+        await Task.Delay(10);
 
         Assert.True(testTask.IsFaulted);
       }
@@ -156,7 +156,7 @@ public class TaskExtrasTests
           value => Task.FromResult(value.Message.Length)
         )(new ArgumentException());
 
-        await Task.Delay(100);
+        await Task.Delay(10);
 
         Assert.True(testTask.IsCompletedSuccessfully);
       }
@@ -169,7 +169,7 @@ public class TaskExtrasTests
           value => Task.FromResult(value.Message.Length)
         )(new NullReferenceException());
 
-        await Task.Delay(100);
+        await Task.Delay(10);
 
         Assert.True(testTask.IsFaulted);
       }
@@ -182,7 +182,7 @@ public class TaskExtrasTests
     public async Task ItShouldWaitTheConfiguredTime()
     {
       Stopwatch testStopWatch = new();
-      int testDeferTimeMilliseconds = 100;
+      int testDeferTimeMilliseconds = 10;
 
       testStopWatch.Start();
 
@@ -192,8 +192,8 @@ public class TaskExtrasTests
 
       Assert.InRange(
         testStopWatch.ElapsedMilliseconds,
-        testDeferTimeMilliseconds - (testDeferTimeMilliseconds * 0.1),
-        testDeferTimeMilliseconds + (testDeferTimeMilliseconds * 0.1)
+        testDeferTimeMilliseconds,
+        testDeferTimeMilliseconds * 2
       );
     }
   }

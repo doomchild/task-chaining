@@ -325,7 +325,7 @@ public class TaskChainingTests
               return actualValue;
             });
 
-          await Task.Delay(100);
+          await Task.Delay(10);
 
           Assert.Equal(expectedValue, actualValue);
         }
@@ -419,7 +419,7 @@ public class TaskChainingTests
               return Task.FromResult(actualValue);
             });
 
-          await Task.Delay(100);
+          await Task.Delay(10);
 
           Assert.Equal(expectedValue, actualValue);
         }
@@ -451,7 +451,7 @@ public class TaskChainingTests
               return Task.FromResult(str.Length);
             });
 
-          await Task.Delay(100);
+          await Task.Delay(10);
 
           Assert.Equal(expectedValue, actualValue);
         }
@@ -472,7 +472,7 @@ public class TaskChainingTests
               return Task.FromResult(actualValue);
             });
 
-          await Task.Delay(100);
+          await Task.Delay(10);
 
           Assert.Equal(expectedValue, actualValue);
         }
@@ -701,7 +701,7 @@ public class TaskChainingTests
           _ => { }
         );
 
-      await Task.Delay(100);
+      await Task.Delay(10);
 
       Assert.Equal(expectedValue, actualValue);
     }
@@ -721,7 +721,7 @@ public class TaskChainingTests
           }
         );
 
-      await Task.Delay(100);
+      await Task.Delay(10);
 
       Assert.Equal(expectedValue, actualValue);
     }
@@ -756,7 +756,7 @@ public class TaskChainingTests
           actualValue = value;
         });
 
-      await Task.Delay(100);
+      await Task.Delay(10);
 
       Assert.Equal(expectedValue, actualValue);
     }
@@ -794,7 +794,7 @@ public class TaskChainingTests
           actualValue = 5;
         });
 
-      await Task.Delay(100);
+      await Task.Delay(10);
 
       Assert.Equal(expectedValue, actualValue);
     }
@@ -814,7 +814,7 @@ public class TaskChainingTests
           actualValue = 5;
         });
 
-      await Task.Delay(100);
+      await Task.Delay(10);
 
       Assert.Equal(expectedValue, actualValue);
     }
@@ -852,7 +852,7 @@ public class TaskChainingTests
           actualValue = 5;
         });
 
-      await Task.Delay(100);
+      await Task.Delay(10);
 
       Assert.Equal(expectedValue, actualValue);
     }
@@ -860,7 +860,7 @@ public class TaskChainingTests
 
   public class Retry
   {
-    public static RetryParams TestRetryOptions = new(3, TimeSpan.FromMilliseconds(100), 2, (_, _, _) => { }, exception => true);
+    public static RetryParams TestRetryOptions = new(3, TimeSpan.FromMilliseconds(10), 2, (_, _, _) => { }, exception => true);
 
     public class ForTtoTNext
     {
