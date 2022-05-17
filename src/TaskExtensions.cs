@@ -9,6 +9,10 @@ public static class TaskExtensions
 {
   #region Monadic Functions
 
+  private static Exception PotentiallyUnwindException(AggregateException exception) => exception.InnerException != null
+    ? exception.InnerException
+    : exception;
+
   /// <summary>
   /// Monadic 'alt'.
   /// </summary>
@@ -39,25 +43,12 @@ public static class TaskExtensions
   /// <typeparam name="TNext">The transformed type.</typeparam>
   /// <param name="morphismTask">A <see cref="Task{Func{T, TR, TNext}}"/> containing the transformation function. </param>
   /// <returns>The transformed task.</returns>
-  public static Task<TNext> Ap<T, TR, TNext>(
+  public static Task<TNext> Ap<T, TNext>(
     this Task<T> task,
-    Task<Func<TR, T, TNext>> morphismTask,
-    TR otherValue
-  ) => task.Bind(async value => (await morphismTask)(otherValue, value));
-
-  /// <summary>
-  /// Monadic 'ap'.
-  /// </summary>
-  /// <typeparam name="T">The task's underlying type.</typeparam>
-  /// <typeparams name="TR">The type of the other input value to <paramref name="morphismTask"/>.</typeparam>
-  /// <typeparam name="TNext">The transformed type.</typeparam>
-  /// <param name="morphismTask">A <see cref="Task{Func{T, TR, TNext}}"/> containing the transformation function. </param>
-  /// <returns>The transformed task.</returns>
-  public static Task<TNext> Ap<T, TR, TNext>(
-    this Task<T> task,
-    Task<Func<TR, T, Task<TNext>>> morphismTask,
-    TR otherValue
-  ) => task.Bind(async value => (await morphismTask)(otherValue, value)).Unwrap();
+    Task<Func<T, TNext>> morphismTask
+  ) => morphismTask.IsFaulted
+    ? Task.FromException<TNext>(PotentiallyUnwindException(morphismTask.Exception!))
+    : task.ResultMap(async value => (await morphismTask)(value)).Unwrap();
 
   /// <summary>
   /// Monadic 'bimap'.
@@ -108,9 +99,9 @@ public static class TaskExtensions
     Func<Exception, Task<TNext>> onFaulted,
     Func<T, Task<TNext>> onFulfilled
   ) => task.ContinueWith(async continuationTask => continuationTask.IsFaulted
-    ? continuationTask.Exception?.InnerException != null
-      ? onFaulted(continuationTask.Exception.InnerException)
-      : onFaulted(continuationTask.Exception!)
+    ? onFaulted(PotentiallyUnwindException(continuationTask.Exception!)) // continuationTask.Exception?.InnerException != null
+      // ? onFaulted(continuationTask.Exception.InnerException)
+      // : onFaulted(continuationTask.Exception!)
     : onFulfilled(await continuationTask)
   ).Unwrap().Unwrap();
 
