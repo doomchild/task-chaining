@@ -237,6 +237,53 @@ public class TaskExtrasTests
       }
 
       [Fact]
+      public async Task ItShouldThrowARetryExceptionWithAnInnerExceptionAfterTheConfiguredNumberOfAttempts()
+      {
+        Exception testException = new ArgumentNullException(Guid.NewGuid().ToString());
+        Exception actualValue = new Exception();
+
+        Func<int> testFunc = () =>
+        {
+          throw testException;
+        };
+
+        try
+        {
+          await TaskExtras.Retry(testFunc);
+        }
+        catch(RetryException retryException)
+        {
+          actualValue = retryException.InnerException!;
+        }
+
+        Assert.IsType<ArgumentNullException>(actualValue);
+      }
+
+      [Fact]
+      public async Task ItShouldThrowARetryExceptionWithAnInnerExceptionWithTheAppropriateMessageAfterTheConfiguredNumberOfAttempts()
+      {
+        Exception testException = new ArgumentNullException(Guid.NewGuid().ToString());
+        string expectedValue = testException.Message;
+        string actualValue = string.Empty;
+
+        Func<int> testFunc = () =>
+        {
+          throw testException;
+        };
+
+        try
+        {
+          await TaskExtras.Retry(testFunc);
+        }
+        catch(RetryException retryException)
+        {
+          actualValue = retryException?.InnerException?.Message!;
+        }
+
+        Assert.Equal(expectedValue, actualValue);
+      }
+
+      [Fact]
       public async Task ItShouldPassIfARetrySucceeds()
       {
         int actualValue = 0;

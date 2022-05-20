@@ -135,7 +135,7 @@ public static class TaskExtras
 		TimeSpan duration = TimeSpan.FromMilliseconds(retryOptions.RetryInterval.TotalMilliseconds * Math.Pow(retryOptions.RetryBackoffRate, attempts));
 
 		return attempts >= retryOptions.MaxRetries
-			? Task.FromException<T>(new RetryException(attempts))
+			? Task.FromException<T>(new RetryException(attempts, exception))
 			: Task.Run(supplier)
 				.Catch(ResolveIf(
 					exception => retryOptions.ShouldRetry(exception),
