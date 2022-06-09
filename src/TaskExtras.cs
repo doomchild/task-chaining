@@ -125,44 +125,58 @@ public static class TaskExtras
 			return await supplier();
 		});
 
+	private static FixedRetryParams RetryDefaults = FixedRetryParams.Default;
+
   private static Task<T> DoRetry<T>(
 		Func<Task<T>> supplier,
-		RetryParams retryOptions,
+		FixedRetryParams retryParams,
 		Exception? exception,
 		int attempts = 0
 	)
   {
-		TimeSpan duration = TimeSpan.FromMilliseconds(retryOptions.RetryInterval.TotalMilliseconds * Math.Pow(retryOptions.RetryBackoffRate, attempts));
+		TimeSpan duration = TimeSpan.FromMilliseconds(
+			retryParams.RetryInterval.TotalMilliseconds * Math.Pow(retryParams.RetryBackoffRate, attempts)
+		);
 
-		return attempts >= retryOptions.MaxRetries
+		return attempts >= retryParams.MaxRetries
 			? Task.FromException<T>(new RetryException(attempts, exception))
 			: Task.Run(supplier)
 				.Catch(ResolveIf(
-					exception => retryOptions.ShouldRetry(exception),
+					exception => retryParams.ShouldRetry(exception),
           exception =>
           {
-            if(retryOptions.OnRetry != null)
+            if(retryParams.OnRetry != null)
             {
-              retryOptions.OnRetry(attempts, duration, exception);
+              retryParams.OnRetry(attempts, duration, exception);
             }
 
             return Defer(
-              () => DoRetry(supplier, retryOptions, exception, attempts + 1),
+              () => DoRetry(supplier, retryParams, exception, attempts + 1),
               duration
             );
           }
         ));
   }
 
-  /// <summary>
+	/// <summary>
 	/// A function that performs retries of the <paramref name="supplier"/> if it fails.
 	/// </summary>
 	/// <typeparam name="T">The task's underlying type.</typeparam>
 	/// <param name="supplier">A supplier function.</param>
 	/// <param name="retryParams">The retry parameters.</param>
 	/// <returns>A function that retries execution of the <paramref name="supplier"/>.</returns>
-	public static Task<T> Retry<T>(Func<Task<T>> supplier, RetryParams retryParams) =>
-		DoRetry(supplier, retryParams, null, 0);
+	public static Task<T> Retry<T>(Func<Task<T>> supplier, RetryParams retryParams)
+	{
+		FixedRetryParams fixedRetryParams = new FixedRetryParams(
+			retryParams.MaxRetries ?? RetryDefaults.MaxRetries,
+			retryParams.RetryInterval ?? RetryDefaults.RetryInterval,
+			retryParams.RetryBackoffRate ?? RetryDefaults.RetryBackoffRate,
+			retryParams.OnRetry ?? RetryDefaults.OnRetry,
+			retryParams.ShouldRetry ?? RetryDefaults.ShouldRetry
+		);
+
+		return DoRetry(supplier, fixedRetryParams, null, 0);
+	}
 
   /// <summary>
 	/// A function that performs retries of the <paramref name="supplier"/> if it fails using the default retry parameters.
