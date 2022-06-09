@@ -222,6 +222,29 @@ public class TaskExtrasTests
       }
 
       [Fact]
+      public async Task ItShouldMakeTheDefaultNumberOfAttemptsWithAnEmptyRetryParams()
+      {
+        int actualValue = 0;
+        Func<int> testFunc = () =>
+        {
+          actualValue += 1;
+
+          throw new Exception();
+        };
+        int expectedValue = 3;
+
+        try
+        {
+          await TaskExtras.Retry(testFunc, new(null, null, null, null, null));
+        }
+        catch (RetryException)
+        {
+        }
+
+        Assert.Equal(expectedValue, actualValue);
+      }
+
+      [Fact]
       public async Task ItShouldThrowARetryExceptionAfterTheConfiguredNumberOfAttempts()
       {
         string expectedMessage = "Retries exhausted after 3 attempts";
