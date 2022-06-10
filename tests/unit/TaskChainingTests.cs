@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Http;
 using System.Threading;
@@ -221,6 +222,24 @@ public class TaskChainingTests
 
         Assert.Equal(expectedValue, actualValue);
       }
+    }
+  }
+
+  public class Delay
+  {
+    [Fact]
+    public async Task ItShouldWaitTheConfiguredTime()
+    {
+      Stopwatch testStopWatch = new();
+      int testDelayIntervalMilliseconds = 50;
+
+      testStopWatch.Start();
+
+      await Task.FromResult(1).Delay(TimeSpan.FromMilliseconds(testDelayIntervalMilliseconds));
+
+      testStopWatch.Stop();
+
+      Assert.True(testStopWatch.ElapsedMilliseconds >= testDelayIntervalMilliseconds);
     }
   }
 
