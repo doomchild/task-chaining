@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace RLC.TaskChaining;
@@ -99,9 +100,7 @@ public static class TaskExtensions
     Func<Exception, Task<TNext>> onFaulted,
     Func<T, Task<TNext>> onFulfilled
   ) => task.ContinueWith(async continuationTask => continuationTask.IsFaulted
-    ? onFaulted(PotentiallyUnwindException(continuationTask.Exception!)) // continuationTask.Exception?.InnerException != null
-      // ? onFaulted(continuationTask.Exception.InnerException)
-      // : onFaulted(continuationTask.Exception!)
+    ? onFaulted(PotentiallyUnwindException(continuationTask.Exception!))
     : onFulfilled(await continuationTask)
   ).Unwrap().Unwrap();
 
@@ -212,6 +211,17 @@ public static class TaskExtensions
   /// <typeparamref name="T"/>.</param>
   /// <returns>The transformed task.</returns>
   public static Task<T> Catch<T>(this Task<T> task, Func<Exception, Task<T>> onFaulted) => task.Recover(onFaulted);
+
+  public static Task<T> Delay<T>(
+    this Task<T> task,
+    TimeSpan delayInterval,
+    CancellationToken cancellationToken = default
+  ) => task.ContinueWith(async continuationTask =>
+  {
+    await Task.Delay(delayInterval, cancellationToken);
+
+    return continuationTask;
+  }).Unwrap().Unwrap();
 
   /// <summary>
   /// Performs an action if the <see name="Task{T}"/> is in a fulfilled state.
