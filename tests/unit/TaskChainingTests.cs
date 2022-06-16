@@ -243,6 +243,37 @@ public class TaskChainingTests
     }
   }
 
+  public class Fault
+  {
+    [Fact]
+    public async Task ItShouldFaultAFulfilledTask()
+    {
+      Task<int> testTask = Task.FromResult(2).Fault(new Exception());
+
+      await Task.Delay(10);
+
+      Assert.True(testTask.IsFaulted);
+    }
+
+    [Fact]
+    public async Task ItShouldNotFaultAFaultedTask()
+    {
+      Task<int> testTask = Task.FromException<int>(new NullReferenceException()).Fault(new ArgumentException());
+      Exception actualValue = new Exception();
+
+      try
+      {
+        await testTask;
+      }
+      catch(Exception exception)
+      {
+        actualValue = exception;
+      }
+
+      Assert.IsType<NullReferenceException>(actualValue);
+    }
+  }
+
   public class Filter
   {
     public class WithRawValue
