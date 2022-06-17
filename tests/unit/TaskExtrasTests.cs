@@ -26,43 +26,88 @@ public class TaskExtrasTests
 
 	public class RejectIf
   {
-    [Fact]
-    public async void ItShouldRejectForASuccessfulPredicate()
+    public class ForRawReturningMorphism
     {
-      Task<int> testTask = TaskExtras.RejectIf(
-        (int value) => value % 2 != 0,
-        value => new ArgumentException()
-      )(1);
+      [Fact]
+      public async void ItShouldRejectForASuccessfulPredicate()
+      {
+        Task<int> testTask = TaskExtras.RejectIf(
+          (int value) => value % 2 != 0,
+          value => new ArgumentException()
+        )(1);
 
-      await Task.Delay(10);
+        await Task.Delay(10);
 
-      Assert.True(testTask.IsFaulted);
+        Assert.True(testTask.IsFaulted);
+      }
+
+      [Fact]
+      public async void ItShouldThrowTheExpectedExceptionForASuccessfulPredicate()
+      {
+        Task<int> testTask = TaskExtras.RejectIf(
+          (int value) => value % 2 != 0,
+          value => new ArgumentException()
+        )(1);
+
+        await Task.Delay(10);
+
+        await Assert.ThrowsAsync<ArgumentException>(async () => await testTask);
+      }
+
+      [Fact]
+      public async void ItShouldResolveForAFailedPredicate()
+      {
+        Task<int> testTask = TaskExtras.RejectIf(
+          (int value) => value % 2 != 0,
+          value => new ArgumentException()
+        )(2);
+
+        await Task.Delay(10);
+
+        Assert.True(testTask.IsCompletedSuccessfully);
+      }
     }
 
-    [Fact]
-    public async void ItShouldThrowTheExpectedExceptionForASuccessfulPredicate()
+    public class ForTaskReturningMorphism
     {
-      Task<int> testTask = TaskExtras.RejectIf(
-        (int value) => value % 2 != 0,
-        value => new ArgumentException()
-      )(1);
+      [Fact]
+      public async void ItShouldRejectForASuccessfulPredicate()
+      {
+        Task<int> testTask = TaskExtras.RejectIf(
+          (int value) => value % 2 != 0,
+          value => Task.FromResult(new ArgumentException())
+        )(1);
 
-      await Task.Delay(10);
+        await Task.Delay(10);
 
-      await Assert.ThrowsAsync<ArgumentException>(async () => await testTask);
-    }
+        Assert.True(testTask.IsFaulted);
+      }
 
-    [Fact]
-    public async void ItShouldResolveForAFailedPredicate()
-    {
-      Task<int> testTask = TaskExtras.RejectIf(
-        (int value) => value % 2 != 0,
-        value => new ArgumentException()
-      )(2);
+      [Fact]
+      public async void ItShouldThrowTheExpectedExceptionForASuccessfulPredicate()
+      {
+        Task<int> testTask = TaskExtras.RejectIf(
+          (int value) => value % 2 != 0,
+          value => Task.FromResult(new ArgumentException())
+        )(1);
 
-      await Task.Delay(10);
+        await Task.Delay(10);
 
-      Assert.True(testTask.IsCompletedSuccessfully);
+        await Assert.ThrowsAsync<ArgumentException>(async () => await testTask);
+      }
+
+      [Fact]
+      public async void ItShouldResolveForAFailedPredicate()
+      {
+        Task<int> testTask = TaskExtras.RejectIf(
+          (int value) => value % 2 != 0,
+          value => Task.FromResult(new ArgumentException())
+        )(2);
+
+        await Task.Delay(10);
+
+        Assert.True(testTask.IsCompletedSuccessfully);
+      }
     }
   }
 

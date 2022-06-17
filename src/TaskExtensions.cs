@@ -244,6 +244,29 @@ public static class TaskExtensions
   ).Unwrap();
 
   /// <summary>
+  /// Faults a <see cref="Task{T}"/> with a provided <see cref="Exception"/>.
+  /// </summary>
+  /// <typeparam name="T">The input task's underlying type.</typeparam>
+  /// <typeparam name="TNext">The output task's underlying type.</typeparam>
+  /// <param name="task">The task.</param>
+  /// <param name="exception">The exception that will be used to fault the task.</param>
+  /// <returns>The task.</returns>
+  public static Task<TNext> Fault<T, TNext>(this Task<T> task, Exception exception) =>
+    task.Fault<T, TNext>(_ => exception);
+
+  /// <summary>
+  /// Faults a <see cref="Task{T}"/> with an <see cref="Exception"/> produced by <paramref name="faultMorphism"/>.
+  /// </summary>
+  /// <typeparam name="T">The input task's underlying type.</typeparam>
+  /// <typeparam name="TNext">The output task's underlying type.</typeparam>
+  /// <param name="task">The task.</param>
+  /// <param name="faultMorphism">The function that will produce the <see cref="Exception"/>.</param>
+  /// <returns>The task.</returns>
+  public static Task<TNext> Fault<T, TNext>(this Task<T> task, Func<T, Exception> faultMorphism) => task.ResultMap(
+    value => Task.FromException<TNext>(faultMorphism(value))
+  ).Unwrap();
+
+  /// <summary>
   /// Performs an action if the <see name="Task{T}"/> is in a fulfilled state.
   /// </summary>
   /// <typeparam name="T">The task's underlying type.</typeparam>
