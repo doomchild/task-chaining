@@ -245,32 +245,67 @@ public class TaskChainingTests
 
   public class Fault
   {
-    [Fact]
-    public async Task ItShouldFaultAFulfilledTask()
+    public class ForTtoTo
     {
-      Task<int> testTask = Task.FromResult(2).Fault(new Exception());
+      [Fact]
+      public async Task ItShouldFaultAFulfilledTask()
+      {
+        Task<int> testTask = Task.FromResult(2).Fault(new Exception());
 
-      await Task.Delay(10);
+        await Task.Delay(10);
 
-      Assert.True(testTask.IsFaulted);
+        Assert.True(testTask.IsFaulted);
+      }
+
+      [Fact]
+      public async Task ItShouldNotFaultAFaultedTask()
+      {
+        Task<int> testTask = Task.FromException<int>(new NullReferenceException()).Fault(new ArgumentException());
+        Exception actualValue = new Exception();
+
+        try
+        {
+          await testTask;
+        }
+        catch (Exception exception)
+        {
+          actualValue = exception;
+        }
+
+        Assert.IsType<NullReferenceException>(actualValue);
+      }
     }
 
-    [Fact]
-    public async Task ItShouldNotFaultAFaultedTask()
+    public class ForTtoTNext
     {
-      Task<int> testTask = Task.FromException<int>(new NullReferenceException()).Fault(new ArgumentException());
-      Exception actualValue = new Exception();
+      [Fact]
+      public async Task ItShouldFaultAFulfilledTask()
+      {
+        Task<string> testTask = Task.FromResult(2).Fault<int, string>(new Exception());
 
-      try
-      {
-        await testTask;
-      }
-      catch(Exception exception)
-      {
-        actualValue = exception;
+        await Task.Delay(10);
+
+        Assert.True(testTask.IsFaulted);
       }
 
-      Assert.IsType<NullReferenceException>(actualValue);
+      [Fact]
+      public async Task ItShouldNotFaultAFaultedTask()
+      {
+        Task<string> testTask = Task.FromException<int>(new NullReferenceException())
+          .Fault<int, string>(new ArgumentException());
+        Exception actualValue = new Exception();
+
+        try
+        {
+          await testTask;
+        }
+        catch (Exception exception)
+        {
+          actualValue = exception;
+        }
+
+        Assert.IsType<NullReferenceException>(actualValue);
+      }
     }
   }
 
