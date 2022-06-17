@@ -518,7 +518,7 @@ public class TaskChainingTests
               return Task.FromResult(str.Length);
             });
 
-          await Task.Delay(10);
+          await Task.Delay(50);
 
           Assert.Equal(expectedValue, actualValue);
         }

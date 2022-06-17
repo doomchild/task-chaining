@@ -19,8 +19,8 @@ public static class TaskExtras
   /// </example>
   /// <typeparam name="T">The task's underlying type.</typeparam>
   /// <param name="predicate">A predicate to evaluate with the input argument.</param>
-  /// <param name="rejectionMorphism">A function that takes an <see cref="Exception"/> and returns a
-  /// <typeparamref name="T"/>.</param>
+  /// <param name="rejectionMorphism">A function that takes a <typeparamref name="T"/> and returns an
+  /// <see cref="Exception"/>.</param>
   /// <returns>A function that performs rejection.</returns>
 	public static Func<T, Task<T>> RejectIf<T>(
 		Predicate<T> predicate,
@@ -30,6 +30,35 @@ public static class TaskExtras
 		: Task.FromResult(value);
 
 	/// <summary>
+	/// Produces a faulted <see cref="Task{T}"/> if the <paramref name="predicate"/> returns <code>false</code>.
+	/// </summary>
+	/// <example>This is a handy way to perform validation.  You might do something like the following:
+	/// <code>
+	/// Task.FromResult(someString)
+	///   .Then(RejectIf(
+	///			string.IsNullOrWhitespace,
+	///			async s => BuildTaskOfException(s)
+	///   ));
+	/// </code>
+	/// </example>
+	/// <typeparam name="T">The task's underlying type.</typeparam>
+	/// <param name="predicate">A predicate to evaluate with the input argument.</param>
+	/// <param name="rejectionMorphism">A function that takes a <typeparamref name="T"/> and returns a
+	/// <see cref="Task{Exception}"/>.</param>
+	/// <returns>A function that performs rejection.</returns>
+	public static Func<T, Task<T>> RejectIf<T, E>(
+		Predicate<T> predicate,
+		Func<T, Task<E>> rejectionMorphism
+	) where E: Exception => value => Task.FromResult(value)
+		.Then(async v => predicate(value)
+			? await Task.FromException<T>(await rejectionMorphism(v))
+			: v
+		);
+	//) => async value => predicate(value)
+	//	? await Task.FromException<T>(await rejectionMorphism(value))
+	//	: value;
+
+  /// <summary>
   /// Allows a faulted <see cref="Task{T}"/> to transform its <see cref="Exception"/> into a different type of
   /// <see cref="Exception"/> if the <paramref name="predicate"/> returns <code>true</code>.
   /// </summary>
@@ -41,7 +70,7 @@ public static class TaskExtras
   /// <param name="rerejectionMorphism">A function that takes an <see cref="Exception"/> and returns an
   /// <see cref="Exception"/>.</param>
   /// <returns>A function that performs re-rejection.</returns>
-	public static Func<Exception, Task<T>> ReRejectIf<T>(
+  public static Func<Exception, Task<T>> ReRejectIf<T>(
 		Predicate<Exception> predicate,
 		Func<Exception, Exception> rerejectionMorphism
 	) => exception => predicate(exception)
