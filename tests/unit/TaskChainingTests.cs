@@ -927,6 +927,27 @@ public class TaskChainingTests
 
       Assert.Equal(expectedValue, actualValue);
     }
+
+    public class WithTaskReturningFunc
+    {
+      [Fact]
+      public async void ItShouldPerformASideEffectOnAResolution()
+      {
+        int actualValue = 0;
+        int expectedValue = 5;
+        Func<int, Task<string>> func = i =>
+        {
+          actualValue = i;
+
+          return Task.FromResult(i.ToString());
+        };
+
+        await Task.FromResult(5)
+          .Tap(func, _ => { });
+
+        Assert.Equal(expectedValue, actualValue);
+      }
+    }
   }
 
   public class IfFulfilled
@@ -999,6 +1020,51 @@ public class TaskChainingTests
       await Task.Delay(10);
 
       Assert.Equal(expectedValue, actualValue);
+    }
+
+    public class WithTaskFunc
+    {
+      [Fact]
+      public async void ItShouldPerformASideEffect()
+      {
+        int actualValue = 0;
+        int expectedValue = 5;
+        Func<int, Task<string>> func = i =>
+        {
+          actualValue = i;
+
+          return Task.FromResult(i.ToString());
+        };
+
+        await Task.FromResult(5)
+          .IfFulfilled(func);
+
+        Assert.Equal(expectedValue, actualValue);
+      }
+
+      [Fact]
+      public async void ItShouldNotPerformASideEffectForAFault()
+      {
+        int actualValue = 0;
+        int expectedValue = 0;
+        Func<int, Task<string>> func = i =>
+        {
+          actualValue = i;
+
+          return Task.FromResult(i.ToString());
+        };
+
+        try
+        {
+          await Task.FromException<int>(new ArgumentNullException())
+            .IfFulfilled(func);
+        }
+        catch (ArgumentNullException)
+        {
+        }
+
+        Assert.Equal(expectedValue, actualValue);
+      }
     }
   }
 
