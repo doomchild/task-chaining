@@ -315,6 +315,26 @@ public static class TaskExtensions
     => task.ResultMap(TaskStatics.Tap(consumer));
 
   /// <summary>
+  /// Executes a function and throws away the result if the <see name="Task{T}"/> is in a fulfilled state.
+  /// </summary>
+  /// <typeparam name="T">The task's underlying type.</typeparam>
+  /// <typeparam name="R">The type of the discarded result of <paramref name="func"/>.</typeparam>
+  /// <param name="task">The task.</param>
+  /// <param name="func">The function to execute if the task is fulfilled.</param>
+  /// <returns></returns>
+  public static Task<T> IfFulfilled<T, R>(this Task<T> task, Func<T, Task<R>> func)
+  {
+    return task.ContinueWith(async continuationTask =>
+    {
+      T value = await continuationTask;
+
+      await func(value);
+
+      return Task.FromResult(value);
+    }).Unwrap().Unwrap();
+  }
+
+  /// <summary>
   /// Performs an action if the <see name="Task{T}"/> is in a faulted state.
   /// </summary>
   /// <typeparam name="T">The task's underlying type.</typeparam>
@@ -339,6 +359,18 @@ public static class TaskExtensions
     => task.Retry(retryFunc, RetryParams.Default);
 
   /// <summary>
+  /// Executes a function and discards the result on a <see name="Task{T}"/> whether it is in a fulfilled or faulted state.
+  /// </summary>
+  /// <remarks>This method is useful if you need to perform a side effect without altering the <see name"Task{T}"/>'s
+  /// value, such as logging.</remarks>
+  /// <typeparam name="T">The task's underlying type.</typeparam>
+  /// <param name="onFulfilled">The function to execute if the task is fulfilled.</param>
+  /// <param name="onFaulted">The action to perform if the task is faulted.</param>
+  /// <returns>The task.</returns>
+  public static Task<T> Tap<T>(this Task<T> task, Action<T> onFulfilled, Action<Exception> onFaulted)
+    => task.IfFulfilled(onFulfilled).IfFaulted(onFaulted);
+
+  /// <summary>
   /// Performs an action on a <see name="Task{T}"/> whether it is in a fulfilled or faulted state.
   /// </summary>
   /// <remarks>This method is useful if you need to perform a side effect without altering the <see name"Task{T}"/>'s
@@ -347,7 +379,7 @@ public static class TaskExtensions
   /// <param name="onFulfilled">The action to perform if the task is fulfilled.</param>
   /// <param name="onFaulted">The action to perform if the task is faulted.</param>
   /// <returns>The task.</returns>
-  public static Task<T> Tap<T>(this Task<T> task, Action<T> onFulfilled, Action<Exception> onFaulted)
+  public static Task<T> Tap<T, R>(this Task<T> task, Func<T, Task<R>> onFulfilled, Action<Exception> onFaulted)
     => task.IfFulfilled(onFulfilled).IfFaulted(onFaulted);
 
   /// <summary>
