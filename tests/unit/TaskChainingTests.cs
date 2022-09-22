@@ -1065,10 +1065,25 @@ public class TaskChainingTests
 
         Assert.Equal(expectedValue, actualValue);
       }
+
+      [Fact]
+      public async void ItShouldNotResultInAFaultedTaskWithAnException()
+      {
+        Func<int, Task<string>> func = i =>
+        {
+          throw new ArgumentException();
+        };
+
+        int expectedValue = 5;
+        int actualValue = await Task.FromResult(5)
+          .IfFulfilled(func);
+
+        Assert.Equal(expectedValue, actualValue);
+      }
     }
   }
 
-  public class IfRejected
+  public class IfFaulted
   {
     [Fact]
     public async void ItShouldPerformASideEffectWithoutAwaiting()
@@ -1093,17 +1108,11 @@ public class TaskChainingTests
       int actualValue = 0;
       int expectedValue = 0;
 
-      try
-      {
-        await Task.FromResult(5)
-          .IfFaulted((Exception _) =>
-          {
-            actualValue = 5;
-          });
-      }
-      catch (ArgumentNullException)
-      {
-      }
+      await Task.FromResult(5)
+        .IfFaulted((Exception _) =>
+        {
+          actualValue = 5;
+        });
 
       Assert.Equal(expectedValue, actualValue);
     }
@@ -1123,6 +1132,59 @@ public class TaskChainingTests
       await Task.Delay(10);
 
       Assert.Equal(expectedValue, actualValue);
+    }
+
+    public class WithTaskFunc
+    {
+      [Fact]
+      public async void ItShouldPerformASideEffectWithoutAwaiting()
+      {
+        int actualValue = 0;
+        int expectedValue = 5;
+        Func<Exception, Task<string>> func = exception =>
+        {
+          actualValue = 5;
+
+          return Task.FromResult(Guid.NewGuid().ToString());
+        };
+
+        _ = Task.FromException<int>(new ArgumentNullException())
+          .IfFaulted(func);
+
+        await Task.Delay(10);
+
+        Assert.Equal(expectedValue, actualValue);
+      }
+
+      [Fact]
+      public async void ItShouldNotPerformASideEffectForAResolution()
+      {
+        int actualValue = 0;
+        int expectedValue = 0;
+        Func<Exception, Task<string>> func = exception =>
+        {
+          actualValue = 5;
+
+          return Task.FromResult(Guid.NewGuid().ToString());
+        };
+
+        await Task.FromResult(5)
+          .IfFaulted(func);
+
+        Assert.Equal(expectedValue, actualValue);
+      }
+
+      [Fact]
+      public async void ItShouldNotChangeExceptionTypesForExceptionThrowingFunc()
+      {
+        Func<Exception, Task<string>> func = exception =>
+        {
+          throw new InvalidOperationException();
+        };
+
+        await Assert.ThrowsAsync<ArgumentNullException>(async () => await Task.FromException<int>(new ArgumentNullException())
+            .IfFaulted(func));
+      }
     }
   }
 
