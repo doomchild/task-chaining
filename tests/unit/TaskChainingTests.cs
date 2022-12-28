@@ -225,6 +225,63 @@ public class TaskChainingTests
     }
   }
 
+  public class CatchWhen
+  {
+    public class ForExceptionToT
+    {
+      [Fact]
+      public async void ItShouldReportUnfaultedForSpecificExceptionType()
+      {
+        Func<string, int> testFunc = _ => throw new ArgumentException();
+        Task<int> testTask = Task.FromResult("abcde")
+          .Then(testFunc)
+          .CatchWhen<int, ArgumentException>(ex => ex.Message.Length);
+
+        await testTask;
+
+        Assert.True(testTask.IsCompletedSuccessfully);
+      }
+
+      [Fact]
+      public async void ItShouldNotCatchForNonMatchingExceptionType()
+      {
+        Func<string, int> testFunc = _ => throw new ArgumentException();
+        Task<int> testTask = Task.FromResult("abcde")
+          .Then(testFunc)
+          .CatchWhen<int, NullReferenceException>(ex => ex.Message.Length);
+
+        await Assert.ThrowsAsync<ArgumentException>(async () => await testTask);
+      }
+    }
+
+    public class ForExceptionToTaskT
+    {
+      [Fact]
+      public async void ItShouldReportUnfaultedForSpecificExceptionType()
+      {
+        Func<string, int> testFunc = _ => throw new ArgumentException();
+        Task<int> testTask = Task.FromResult("abcde")
+          .Then(testFunc)
+          .CatchWhen<int, ArgumentException>(ex => Task.FromResult(ex.Message.Length));
+
+        await testTask;
+
+        Assert.True(testTask.IsCompletedSuccessfully);
+      }
+
+      [Fact]
+      public async void ItShouldNotCatchForNonMatchingExceptionType()
+      {
+        Func<string, int> testFunc = _ => throw new ArgumentException();
+        Task<int> testTask = Task.FromResult("abcde")
+          .Then(testFunc)
+          .CatchWhen<int, NullReferenceException>(ex => Task.FromResult(ex.Message.Length));
+
+        await Assert.ThrowsAsync<ArgumentException>(async () => await testTask);
+      }
+    }
+  }
+
   public class Delay
   {
     [Fact]
