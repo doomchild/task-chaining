@@ -43,7 +43,7 @@ Task.FromResult("not-a-url")              // Task<string>
   .Then(message => message.Length)        // Task<int>
 ```
 
-Note that it's entirely possible for a `Catch` method to cause the `Task<T>` to remain in a faulted state, e.g. if you only wanted to recover into a non-faulted state if a particular exception type occurred.
+Note that it's entirely possible for a `Catch` method to cause the `Task<T>` to remain in a faulted state, e.g. if you only wanted to recover into a non-faulted state if a particular exception type occurred (although `CatchWhen` is better for this if you're only trying to recover from a single exception type).
 
 ```c#
 HttpClient client;  // Assuming this is coming from an HttpClientFactory or injected or whatever
@@ -54,6 +54,19 @@ Task.FromResult("not-a-url")          // Task<string>
     ? exception.Message
     : Task.FromException(exception))  // Task<string> but STILL FAULTED if anything other than NullReferenceException occurred
   .Then(message => message.Length)    // Task<int>
+```
+
+#### CatchWhen
+
+When a `Task<T>` enters a faulted state, the `CatchWhen` method can be used to return the `Task<T>` to a non-faulted state if the contained exception matches the supplied type.
+
+```c#
+HttpClient client;  // Assuming this is coming from an HttpClientFactory or injected or whatever
+
+Task.FromResult("not-a-url")                                                  // Task<string>
+  .Then(client.GetAsync)                                                      // Task<HttpResponseMessage> but FAULTED
+  .CatchWhen<string, NullReferenceException>(exception => exception.Message)  // Task<string> and NOT FAULTED if client.GetAsync threw a NullReferenceException
+  .Then(message => message.Length)                                            // Task<int>
 ```
 
 #### IfFulfilled/IfFaulted/Tap

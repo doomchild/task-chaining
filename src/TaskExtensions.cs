@@ -250,6 +250,42 @@ public static class TaskExtensions
   /// <returns>The transformed task.</returns>
   public static Task<T> Catch<T>(this Task<T> task, Func<Exception, Task<T>> onFaulted) => task.Recover(onFaulted);
 
+  /// <summary>
+  /// Transitions a faulted <see name="Task{T}"/> into a fulfilled one if the contained exception matches the supplied
+  /// type.
+  /// </summary>
+  /// <remarks>This method is an alias to <code>Task.Recover</code> in order to line up with the expected Promise
+  /// API.</remarks>
+  /// <typeparam name="T">The task's underlying type.</typeparam>
+  /// <typeparam name="TException">The type of exception to catch.</typeparam>
+  /// <param name="onFaulted">The function to convert a <typeparamref name="TException" /> into a
+  /// <typeparamref name="T"/>.</param>
+  /// <returns>The transformed task.</returns>
+  public static Task<T> CatchWhen<T, TException>(this Task<T> task, Func<TException, T> onFaulted)
+    where TException : Exception => task.Recover(
+      ex => ex is TException
+      ? Task.FromResult(onFaulted((TException) ex))
+      : task
+    );
+
+  /// <summary>
+  /// Transitions a faulted <see name="Task{T}"/> into a fulfilled one if the contained exception matches the supplied
+  /// type.
+  /// </summary>
+  /// <remarks>This method is an alias to <code>Task.Recover</code> in order to line up with the expected Promise
+  /// API.</remarks>
+  /// <typeparam name="T">The task's underlying type.</typeparam>
+  /// <typeparam name="TException">The type of exception to catch.</typeparam>
+  /// <param name="onFaulted">The function to convert a <typeparamref name="TException" /> into a
+  /// <typeparamref name="T"/>.</param>
+  /// <returns>The transformed task.</returns>
+  public static Task<T> CatchWhen<T, TException>(this Task<T> task, Func<TException, Task<T>> onFaulted)
+    where TException : Exception => task.Recover(
+      ex => ex is TException
+      ? onFaulted((TException) ex)
+      : task
+    );
+
   public static Task<T> Delay<T>(
     this Task<T> task,
     TimeSpan delayInterval,
