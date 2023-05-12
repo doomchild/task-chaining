@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 
 namespace RLC.TaskChaining;
 
@@ -67,6 +68,24 @@ public static class TaskStatics
     return value =>
     {
       consumer(value);
+
+      return value;
+    };
+  }
+
+  /// <summary>
+  /// Wraps a <see cref="Func{TTappedValue, Task}"/> (the async verion of an <see cref="Action" />) in a
+  /// <see cref="Func{TTappedValue, TTappedValue}"/> that executes the Func and then returns the input value.
+  /// </summary>
+  /// <typeparam name="TTappedValue">The type of the value passed into the Action and returned.</typeparam>
+  /// <param name="consumer">The Action to perform on the input value.</param>
+  /// <returns>A function that takes a value, executes the <param name="consumer"/>, and returns the value.</returns>
+  [MethodImpl(MethodImplOptions.AggressiveInlining)]
+  public static Func<TTappedValue, Task<TTappedValue>> Tap<TTappedValue>(Func<TTappedValue, Task> consumer)
+  {
+    return async value =>
+    {
+      await consumer(value);
 
       return value;
     };
