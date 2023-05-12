@@ -1005,6 +1005,49 @@ public class TaskChainingTests
         Assert.Equal(expectedValue, actualValue);
       }
     }
+
+    public class WithAsyncAction
+    {
+      [Fact]
+      public async void ItShouldPerformASideEffectOnAResolution()
+      {
+        int actualValue = 0;
+        int expectedValue = 5;
+        Func<int, Task> func = async i =>
+        {
+          await Task.Delay(1);
+
+          actualValue = i;
+        };
+
+        _ = Task.FromResult(5)
+          .Tap(func, ex => Task.FromException<int>(ex));
+
+        await Task.Delay(10);
+
+        Assert.Equal(expectedValue, actualValue);
+      }
+
+      [Fact]
+      public async void ItShouldPerformASideEffectOnAFault()
+      {
+        int actualValue = 0;
+        int expectedValue = 5;
+        Func<Exception, Task> func = async i =>
+        {
+          await Task.Delay(1);
+
+          actualValue = 5;
+        };
+
+        _ = Task.FromException<int>(new Exception())
+          .Tap(i => Task.FromResult(i), func);
+
+        await Task.Delay(10);
+
+        Assert.Equal(expectedValue, actualValue);
+      }
+    }
   }
 
   public class IfFulfilled
@@ -1138,6 +1181,30 @@ public class TaskChainingTests
         Assert.Equal(expectedValue, actualValue);
       }
     }
+
+    public class WithAsyncAction
+    {
+      [Fact]
+      public async void ItShouldContinueAsyncTasks()
+      {
+        string testValue = "12345";
+        int expectedValue = 5;
+        int actualValue = 0;
+        Func<string, Task> func = async value =>
+        {
+          await Task.Delay(1);
+
+          actualValue = value.Length;
+        };
+
+        _ = Task.FromResult(testValue)
+          .IfFulfilled(func);
+
+        await Task.Delay(10);
+
+        Assert.Equal(expectedValue, actualValue);
+      }
+    }
   }
 
   public class IfFaulted
@@ -1241,6 +1308,29 @@ public class TaskChainingTests
 
         await Assert.ThrowsAsync<ArgumentNullException>(async () => await Task.FromException<int>(new ArgumentNullException())
             .IfFaulted(func));
+      }
+    }
+
+    public class WithAsyncAction
+    {
+      [Fact]
+      public async void ItShouldContinueAsyncTasks()
+      {
+        int actualValue = 0;
+        int expectedValue = 5;
+        Func<Exception, Task> func = async exception =>
+        {
+          await Task.Delay(1);
+
+          actualValue = 5;
+        };
+
+        _ = Task.FromException<int>(new Exception())
+          .IfFaulted(func);
+
+        await Task.Delay(10);
+
+        Assert.Equal(expectedValue, actualValue);
       }
     }
   }
