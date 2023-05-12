@@ -117,6 +117,17 @@ public static class TaskExtensions
   public static Task<T> ExceptionMap<T>(this Task<T> task, Func<Exception, Exception> onFaulted)
     => task.BiMap(onFaulted, Identity);
 
+  public static Task<T> ExceptionMap<T>(this Task<T> task, Func<Exception, Task<Exception>> onFaulted)
+    => task.ContinueWith(async continuationTask => continuationTask.IsFaulted
+      ? Task.FromException<T>(await onFaulted(PotentiallyUnwindException(continuationTask.Exception)))
+      : continuationTask
+    ).Unwrap().Unwrap();
+    // => task.BiBind<T, T>(
+    //   //Pipe2<Exception, Task<Exception>, Task<T>>(onFaulted, Task.FromException<T>),
+    //   async ex => Task.FromException<T>(await onFaulted(ex)),
+    //   Pipe2(Identity, Task.FromResult)
+    // );
+
   /// <summary>
   /// Allows a fulfilled <see name="Task{T}"/> to be transitioned to a faulted one if the <paramref name="predicate"/>
   /// returns <code>false</code>.
@@ -358,16 +369,16 @@ public static class TaskExtensions
   /// <param name="func">The function to execute if the task is fulfilled.</param>
   /// <returns>The task.</returns>
   public static Task<T> IfFulfilled<T, R>(this Task<T> task, Func<T, Task<R>> func)
-    => task.ResultMap(value =>
+    => task.ResultMap(async value =>
     {
       try
       {
-        func(value);
+        await func(value);
       }
       catch { }
 
       return value;
-    });
+    }).Unwrap();
 
   /// <summary>
   /// Executes a function and throws away the result if the <see name="Task{T}"/> is in a fulfilled state.
@@ -396,11 +407,11 @@ public static class TaskExtensions
   /// <param name="onFaulted">The function to execute if the task is faulted.</param>
   /// <returns>The task.</returns>
   public static Task<T> IfFaulted<T, R>(this Task<T> task, Func<Exception, Task<R>> onFaulted)
-    => task.ExceptionMap(exception =>
+    => task.ExceptionMap(async exception =>
     {
       try
       {
-        onFaulted(exception);
+        await onFaulted(exception);
       }
       catch { }
 
@@ -408,11 +419,11 @@ public static class TaskExtensions
     });
 
   public static Task<T> IfFaulted<T>(this Task<T> task, Func<Exception, Task> onFaulted)
-    => task.ExceptionMap(exception =>
+    => task.ExceptionMap(async exception =>
     {
       try
       {
-        onFaulted(exception);
+        await onFaulted(exception);
       }
       catch { }
 
