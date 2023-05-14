@@ -122,11 +122,6 @@ public static class TaskExtensions
       ? Task.FromException<T>(await onFaulted(PotentiallyUnwindException(continuationTask.Exception)))
       : continuationTask
     ).Unwrap().Unwrap();
-    // => task.BiBind<T, T>(
-    //   //Pipe2<Exception, Task<Exception>, Task<T>>(onFaulted, Task.FromException<T>),
-    //   async ex => Task.FromException<T>(await onFaulted(ex)),
-    //   Pipe2(Identity, Task.FromResult)
-    // );
 
   /// <summary>
   /// Allows a fulfilled <see name="Task{T}"/> to be transitioned to a faulted one if the <paramref name="predicate"/>
@@ -369,16 +364,19 @@ public static class TaskExtensions
   /// <param name="func">The function to execute if the task is fulfilled.</param>
   /// <returns>The task.</returns>
   public static Task<T> IfFulfilled<T, R>(this Task<T> task, Func<T, Task<R>> func)
-    => task.ResultMap(async value =>
+    => task.ContinueWith(async continuationTask =>
     {
-      try
+      if (continuationTask.IsFaulted)
       {
-        await func(value);
+        return continuationTask;
       }
-      catch { }
+      else
+      {
+        T value = await continuationTask;
 
-      return value;
-    }).Unwrap();
+        return Task.FromResult(value).Then(func).Then(_ => value, _ => value);
+      }
+    }).Unwrap().Unwrap();
 
   /// <summary>
   /// Executes a function and throws away the result if the <see name="Task{T}"/> is in a fulfilled state.
@@ -389,7 +387,7 @@ public static class TaskExtensions
   /// <param name="func">The function to execute if the task is fulfilled.</param>
   /// <returns>The task.</returns>
   public static Task<T> IfFulfilled<T>(this Task<T> task, Func<T, Task> func)
-    => task.ResultMap(TaskStatics.Tap(func)).Unwrap();
+    => task.IfFulfilled<T, T>(value => Task.FromResult(value).Then(func).Then(_ => value, _ => value));
 
   /// <summary>
   /// Performs an action if the <see name="Task{T}"/> is in a faulted state.
@@ -404,31 +402,37 @@ public static class TaskExtensions
   /// Executes a function and throws away the result if the <see name="Task{T}"/> is in a faulted state.
   /// </summary>
   /// <typeparam name="T">The task's underlying type.</typeparam>
+  /// <typeparam name="R">The output task's underlying type.</typeparam>
   /// <param name="onFaulted">The function to execute if the task is faulted.</param>
   /// <returns>The task.</returns>
   public static Task<T> IfFaulted<T, R>(this Task<T> task, Func<Exception, Task<R>> onFaulted)
-    => task.ExceptionMap(async exception =>
+    => task.ContinueWith(continuationTask =>
     {
-      try
+      if (continuationTask.IsFaulted)
       {
-        await onFaulted(exception);
+        Exception taskException = PotentiallyUnwindException(continuationTask.Exception!);
+
+        return Task.FromException<R>(PotentiallyUnwindException(continuationTask.Exception!))
+          .Catch<R>(ex => onFaulted(ex))
+          .Then(
+            _ => Task.FromException<T>(taskException),
+            _ => Task.FromException<T>(taskException)
+          );
       }
-      catch { }
+      else
+      {
+        return continuationTask;
+      }
+    }).Unwrap();
 
-      return exception;
-    });
-
+  /// <summary>
+  /// Executes a function and throws away the result if the <see name="Task{T}"/> is in a faulted state.
+  /// </summary>
+  /// <typeparam name="T">The task's underlying type.</typeparam>
+  /// <param name="onFaulted">The function to execute if the task is faulted.</param>
+  /// <returns>The task.</returns>
   public static Task<T> IfFaulted<T>(this Task<T> task, Func<Exception, Task> onFaulted)
-    => task.ExceptionMap(async exception =>
-    {
-      try
-      {
-        await onFaulted(exception);
-      }
-      catch { }
-
-      return exception;
-    });
+    => task.IfFaulted<T, T>(exception => onFaulted(exception).ContinueWith(continuationTask => Task.FromException<T>(exception)).Unwrap());
 
   public static Task<TNext> Retry<T, TNext>(
     this Task<T> task,
