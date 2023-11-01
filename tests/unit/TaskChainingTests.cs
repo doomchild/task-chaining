@@ -819,15 +819,38 @@ public class TaskChainingTests
               .RespondWith((responseBuilder, _) => responseBuilder.WithStatusCode(HttpStatusCode.OK))
             )
             .BuildHttpClient();
-          ;
+
           CancellationTokenSource testTokenSource = new();
           testTokenSource.Cancel();
 
-          Task<string> testTask = Task.FromResult<string>("http://anything.anywhere")
-            .Then(async url => await testHttpClient.GetStringAsync(url, testTokenSource.Token));
+          Task<string> testTask = Task.FromResult<string>("https://www.google.com")
+            .Then(async url => await testHttpClient.GetStringAsync(url, testTokenSource.Token))
+            .Then(_ => Guid.NewGuid().ToString());
 
-          await Assert.ThrowsAsync<TaskCanceledException>(async () => await testTask);
+          await Task.Delay(50);
+
+          Assert.True(testTask.IsFaulted);
         }
+      }
+
+      public async void ItShouldCaptureTaskCancellationException()
+      {
+        HttpClient testHttpClient = new MockHttpBuilder()
+          .WithHandler(messageCaseBuilder => messageCaseBuilder.AcceptAll()
+          .RespondWith((responseBuilder, _) => responseBuilder.WithStatusCode(HttpStatusCode.OK))
+          )
+          .BuildHttpClient();
+
+        CancellationTokenSource testTokenSource = new();
+        testTokenSource.Cancel();
+
+        Task<string> testTask = Task.FromResult<string>("https://www.google.com")
+          .Then(async url => await testHttpClient.GetStringAsync(url, testTokenSource.Token))
+          .Then(_ => Guid.NewGuid().ToString());
+
+        await Task.Delay(50);
+
+        await Assert.ThrowsAsync<TaskCanceledException>(async () => await testTask);
       }
     }
 

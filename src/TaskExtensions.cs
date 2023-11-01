@@ -99,10 +99,24 @@ public static class TaskExtensions
     this Task<T> task,
     Func<Exception, Task<TNext>> onFaulted,
     Func<T, Task<TNext>> onFulfilled
-  ) => task.ContinueWith(async continuationTask => continuationTask.IsFaulted
-    ? onFaulted(PotentiallyUnwindException(continuationTask.Exception!))
-    : onFulfilled(await continuationTask)
-  ).Unwrap().Unwrap();
+  ) => task.ContinueWith(async continuationTask =>
+    {
+      if (continuationTask.IsCanceled)
+      {
+        try
+        {
+          await continuationTask;
+        }
+        catch (OperationCanceledException exception)
+        {
+          return Task.FromException<TNext>(exception);
+        }
+      }
+
+      return continuationTask.IsFaulted
+        ? onFaulted(PotentiallyUnwindException(continuationTask.Exception!))
+        : onFulfilled(await continuationTask);
+    }).Unwrap().Unwrap();
 
   /// <summary>
   /// Disjunctive `leftMap`.
