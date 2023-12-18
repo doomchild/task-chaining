@@ -218,6 +218,87 @@ public static class TaskExtensions
     ).Unwrap();
 
   /// <summary>
+  /// Allows a fulfilled <see name="Task{T}"/> to be transitioned to a faulted one if the <paramref name="predicate"/>
+  /// returns <code>false</code>.
+  /// </summary>
+  /// <remarks>This method provides another way to perform validation on the value contained within the
+  /// <see name="Task{T}"/>.</remarks>
+  /// <typeparam name="T">The task's underlying type.</typeparam>
+  /// <param name="predicate">The predicate to run on the <see name="Task{T}"/>'s value.</param>
+  /// <param name="exception">The exception to fault with if the <paramref name="predicate"/> returns
+  /// <code>false</code>.</param>
+  /// <returns>The transformed task.</returns>
+  public static Task<T> Filter<T>(this Task<T> task, Func<T, Task<bool>> predicate, Exception exception)
+    => task.Filter(predicate, Constant(exception));
+
+  /// <summary>
+  /// Allows a fulfilled <see name="Task{T}"/> to be transitioned to a faulted one if the <paramref name="predicate"/>
+  /// returns <code>false</code>.
+  /// </summary>
+  /// <remarks>This method provides another way to perform validation on the value contained within the
+  /// <see name="Task{T}"/>.</remarks>
+  /// <typeparam name="T">The task's underlying type.</typeparam>
+  /// <param name="predicate">The predicate to run on the <see name="Task{T}"/>'s value.</param>
+  /// <param name="supplier">A supplier function that produces the exception to fault with if the
+  /// <paramref name="predicate"/> returns <code>false</code>.</param>
+  /// <returns>The transformed task.</returns>
+  public static Task<T> Filter<T>(this Task<T> task, Func<T, Task<bool>> predicate, Func<Exception> supplier)
+    => task.Filter(predicate, _ => supplier());
+
+  /// <summary>
+  /// Allows a fulfilled <see cref="Task{T}"/> to be transitioned to a faulted one if the <paramref name="predicate"/>
+  /// returns <code>false</code>.
+  /// </summary>
+  /// <remarks>This method provides another way to perform validation on the value contained within the
+  /// <see name="Task{T}"/>.</remarks>
+  /// <typeparam name="T">The task's underlying type.</typeparam>
+  /// <param name="predicate">The predicate to run on the <see cref="Task{T}"/>'s value.</param>
+  /// <param name="morphism">A function that produces the exception to fault with if the <paramref name="predicate"/>
+  /// returns <code>false</code>.</param>
+  /// <returns>The transformed task.</returns>
+  public static Task<T> Filter<T>(this Task<T> task, Func<T, Task<bool>> predicate, Func<T, Exception> morphism)
+    => task.Bind(async value => await predicate(value) ? Task.FromResult(value) : Task.FromException<T>(morphism(value)))
+    .Unwrap();
+
+  /// <summary>
+  /// Allows a fulfilled <see cref="Task{T}"/> to be transitioned to a faulted one if the <paramref name="predicate"/>
+  /// return <code>false</code>.
+  /// </summary>
+  /// <typeparam name="T">The task's underlying type.</typeparam>
+  /// <typeparam name="E">The type of <see cref="Exception"/> that <paramref name="morphism"/> returns.</typeparam>
+  /// <param name="task">The task.</param>
+  /// <param name="predicate">The predicate to run on the <see cref="Task{T}"/>'s value.</param>
+  /// <param name="morphism">A function that produces a <see cref="Task{E}"/> to fault with if the
+  /// <paramref name="predicate"/>returns <code>false</code>.</param>
+  /// <returns>The transformed task.</returns>
+  public static Task<T> Filter<T, E>(
+    this Task<T> task,
+    Func<T, Task<bool>> predicate,
+    Func<Task<E>> morphism
+  ) where E : Exception => task.Filter(predicate, _ => morphism());
+
+  /// <summary>
+  /// Allows a fulfilled <see cref="Task{T}"/> to be transitioned to a faulted one if the <paramref name="predicate"/>
+  /// return <code>false</code>.
+  /// </summary>
+  /// <typeparam name="T">The task's underlying type.</typeparam>
+  /// <typeparam name="E">The type of <see cref="Exception"/> that <paramref name="morphism"/> returns.</typeparam>
+  /// <param name="task">The task.</param>
+  /// <param name="predicate">The predicate to run on the <see cref="Task{T}"/>'s value.</param>
+  /// <param name="morphism">A function that produces a <see cref="Task{E}"/> to fault with if the
+  /// <paramref name="predicate"/>returns <code>false</code>.</param>
+  /// <returns>The transformed task.</returns>
+  public static Task<T> Filter<T, E>(
+    this Task<T> task,
+    Func<T, Task<bool>> predicate,
+    Func<T, Task<E>> morphism
+  ) where E : Exception => task.Bind(
+    async value => (await predicate(value))
+    ? Task.FromResult(value)
+    : Task.FromException<T>(await morphism(value))
+  ).Unwrap();
+
+  /// <summary>
   /// Disjunctive 'rightMap'.  Can be thought of as 'fmap' for <see name="Task{T}"/>s.
   /// </summary>
   /// <remarks>This method allows the value in a fulfilled <see name="Task{T}"/> to be transformed into another
