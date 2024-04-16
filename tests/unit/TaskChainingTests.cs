@@ -48,7 +48,7 @@ public class TaskChainingTests
             actualValue = value;
           });
 
-        await Task.Delay(10);
+        await Task.Delay(5);
 
         Assert.Equal(expectedValue, actualValue);
       }
@@ -309,7 +309,7 @@ public class TaskChainingTests
       {
         Task<int> testTask = Task.FromResult(2).Fault(new Exception());
 
-        await Task.Delay(10);
+        await Task.Delay(2);
 
         Assert.True(testTask.IsFaulted);
       }
@@ -340,7 +340,7 @@ public class TaskChainingTests
       {
         Task<string> testTask = Task.FromResult(2).Fault<int, string>(new Exception());
 
-        await Task.Delay(10);
+        await Task.Delay(2);
 
         Assert.True(testTask.IsFaulted);
       }
@@ -375,7 +375,7 @@ public class TaskChainingTests
       {
         Task<int> testTask = Task.FromResult(2).Filter(value => value % 2 == 0, new Exception("not even"));
 
-        await Task.Delay(10);
+        await Task.Delay(2);
 
         Assert.True(testTask.IsCompletedSuccessfully);
       }
@@ -418,7 +418,7 @@ public class TaskChainingTests
         {
           Task<int> testTask = Task.FromResult(2).Filter(value => value % 2 == 0, value => new Exception("not even"));
 
-          await Task.Delay(10);
+          await Task.Delay(2);
 
           Assert.True(testTask.IsCompletedSuccessfully);
         }
@@ -462,7 +462,7 @@ public class TaskChainingTests
             () => Task.FromResult(new Exception("not even"))
           );
 
-          await Task.Delay(10);
+          await Task.Delay(2);
 
           Assert.True(testTask.IsCompletedSuccessfully);
         }
@@ -512,7 +512,7 @@ public class TaskChainingTests
             _ => Task.FromResult(new Exception("not even"))
           );
 
-          await Task.Delay(10);
+          await Task.Delay(2);
 
           Assert.True(testTask.IsCompletedSuccessfully);
         }
@@ -784,7 +784,7 @@ public class TaskChainingTests
               return actualValue;
             });
 
-          await Task.Delay(10);
+          await Task.Delay(2);
 
           Assert.Equal(expectedValue, actualValue);
         }
@@ -878,7 +878,7 @@ public class TaskChainingTests
               return Task.FromResult(actualValue);
             });
 
-          await Task.Delay(10);
+          await Task.Delay(2);
 
           Assert.Equal(expectedValue, actualValue);
         }
@@ -910,7 +910,7 @@ public class TaskChainingTests
               return Task.FromResult(str.Length);
             });
 
-          await Task.Delay(50);
+          await Task.Delay(5);
 
           Assert.Equal(expectedValue, actualValue);
         }
@@ -931,7 +931,7 @@ public class TaskChainingTests
               return Task.FromResult(actualValue);
             });
 
-          await Task.Delay(10);
+          await Task.Delay(5);
 
           Assert.Equal(expectedValue, actualValue);
         }
@@ -1146,414 +1146,6 @@ public class TaskChainingTests
 
           Assert.Equal(expectedValue, actualValue);
         }
-      }
-    }
-  }
-
-  public class Tap
-  {
-    [Fact]
-    public async void ItShouldPerformASideEffectOnAResolution()
-    {
-      int actualValue = 0;
-      int expectedValue = 5;
-
-      await Task.FromResult(5)
-        .Tap(value =>
-        {
-          actualValue = value;
-        },
-        _ => { }
-      );
-
-      Assert.Equal(expectedValue, actualValue);
-    }
-
-    [Fact]
-    public async void ItShouldPerformASideEffectOnAResolutionWithoutAwaiting()
-    {
-      int actualValue = 0;
-      int expectedValue = 5;
-
-      _ = Task.FromResult(5)
-        .Tap(value =>
-        {
-          actualValue = value;
-        },
-          _ => { }
-        );
-
-      await Task.Delay(10);
-
-      Assert.Equal(expectedValue, actualValue);
-    }
-
-    [Fact]
-    public async void ItShouldPerformASideEffectOnAFaultWithoutAwaiting()
-    {
-      int actualValue = 0;
-      int expectedValue = 5;
-
-      _ = Task.FromException<int>(new ArgumentNullException())
-        .Tap(
-          _ => { },
-          _ =>
-          {
-            actualValue = 5;
-          }
-        );
-
-      await Task.Delay(10);
-
-      Assert.Equal(expectedValue, actualValue);
-    }
-
-    public class WithTaskReturningFunc
-    {
-      [Fact]
-      public async void ItShouldPerformASideEffectOnAResolution()
-      {
-        int actualValue = 0;
-        int expectedValue = 5;
-        Func<int, Task<string>> func = i =>
-        {
-          actualValue = i;
-
-          return Task.FromResult(i.ToString());
-        };
-
-        await Task.FromResult(5)
-          .Tap(func, _ => { });
-
-        Assert.Equal(expectedValue, actualValue);
-      }
-    }
-
-    public class WithAsyncAction
-    {
-      [Fact]
-      public async void ItShouldPerformASideEffectOnAResolution()
-      {
-        int actualValue = 0;
-        int expectedValue = 5;
-        Func<int, Task> func = async i =>
-        {
-          await Task.Delay(1);
-
-          actualValue = i;
-        };
-
-        _ = Task.FromResult(5)
-          .Tap(func, ex => Task.FromException<int>(ex));
-
-        await Task.Delay(10);
-
-        Assert.Equal(expectedValue, actualValue);
-      }
-
-      [Fact]
-      public async void ItShouldPerformASideEffectOnAFault()
-      {
-        int actualValue = 0;
-        int expectedValue = 5;
-        Func<Exception, Task> func = async i =>
-        {
-          await Task.Delay(1);
-
-          actualValue = 5;
-        };
-
-        _ = Task.FromException<int>(new Exception())
-          .Tap(i => Task.FromResult(i), func);
-
-        await Task.Delay(10);
-
-        Assert.Equal(expectedValue, actualValue);
-      }
-    }
-  }
-
-  public class IfFulfilled
-  {
-    [Fact]
-    public async void ItShouldPerformASideEffect()
-    {
-      int actualValue = 0;
-      int expectedValue = 5;
-
-      await Task.FromResult(5)
-        .IfFulfilled(value =>
-        {
-          actualValue = value;
-        });
-
-      Assert.Equal(expectedValue, actualValue);
-    }
-
-    [Fact]
-    public async void ItShouldPerformASideEffectWithoutAwaiting()
-    {
-      int actualValue = 0;
-      int expectedValue = 5;
-
-      _ = Task.FromResult(5)
-        .IfFulfilled(value =>
-        {
-          actualValue = value;
-        });
-
-      await Task.Delay(10);
-
-      Assert.Equal(expectedValue, actualValue);
-    }
-
-    [Fact]
-    public async void ItShouldNotPerformASideEffectForAFault()
-    {
-      int actualValue = 0;
-      int expectedValue = 0;
-
-      try
-      {
-        await Task.FromException<int>(new ArgumentNullException())
-          .IfFulfilled((int value) =>
-          {
-            actualValue = 5;
-          });
-      }
-      catch (ArgumentNullException)
-      {
-      }
-
-      Assert.Equal(expectedValue, actualValue);
-    }
-
-    [Fact]
-    public async void ItShouldNotPerformASideEffectForAFaultWithoutAwaiting()
-    {
-      int actualValue = 0;
-      int expectedValue = 0;
-
-      _ = Task.FromException<int>(new ArgumentNullException())
-        .IfFulfilled((int _) =>
-        {
-          actualValue = 5;
-        });
-
-      await Task.Delay(10);
-
-      Assert.Equal(expectedValue, actualValue);
-    }
-
-    public class WithTaskFunc
-    {
-      [Fact]
-      public async void ItShouldPerformASideEffect()
-      {
-        int actualValue = 0;
-        int expectedValue = 5;
-        Func<int, Task<string>> func = i =>
-        {
-          actualValue = i;
-
-          return Task.FromResult(i.ToString());
-        };
-
-        await Task.FromResult(5)
-          .IfFulfilled(func);
-
-        Assert.Equal(expectedValue, actualValue);
-      }
-
-      [Fact]
-      public async void ItShouldNotPerformASideEffectForAFault()
-      {
-        int actualValue = 0;
-        int expectedValue = 0;
-        Func<int, Task<string>> func = i =>
-        {
-          actualValue = i;
-
-          return Task.FromResult(i.ToString());
-        };
-
-        try
-        {
-          await Task.FromException<int>(new ArgumentNullException())
-            .IfFulfilled(func);
-        }
-        catch (ArgumentNullException)
-        {
-        }
-
-        Assert.Equal(expectedValue, actualValue);
-      }
-
-      [Fact]
-      public async void ItShouldNotResultInAFaultedTaskWithAnException()
-      {
-        Func<int, Task<string>> func = i =>
-        {
-          throw new ArgumentException();
-        };
-
-        int expectedValue = 5;
-        int actualValue = await Task.FromResult(5)
-          .IfFulfilled(func);
-
-        Assert.Equal(expectedValue, actualValue);
-      }
-    }
-
-    public class WithAsyncAction
-    {
-      [Fact]
-      public async void ItShouldContinueAsyncTasks()
-      {
-        string testValue = "12345";
-        int expectedValue = 5;
-        int actualValue = 0;
-        Func<string, Task> func = async value =>
-        {
-          await Task.Delay(1);
-
-          actualValue = value.Length;
-        };
-
-        _ = Task.FromResult(testValue)
-          .IfFulfilled(func);
-
-        await Task.Delay(10);
-
-        Assert.Equal(expectedValue, actualValue);
-      }
-    }
-  }
-
-  public class IfFaulted
-  {
-    [Fact]
-    public async void ItShouldPerformASideEffectWithoutAwaiting()
-    {
-      int actualValue = 0;
-      int expectedValue = 5;
-
-      _ = Task.FromException<int>(new ArgumentNullException())
-        .IfFaulted((Exception _) =>
-        {
-          actualValue = 5;
-        });
-
-      await Task.Delay(10);
-
-      Assert.Equal(expectedValue, actualValue);
-    }
-
-    [Fact]
-    public async void ItShouldNotPerformASideEffectForAResolution()
-    {
-      int actualValue = 0;
-      int expectedValue = 0;
-
-      await Task.FromResult(5)
-        .IfFaulted((Exception _) =>
-        {
-          actualValue = 5;
-        });
-
-      Assert.Equal(expectedValue, actualValue);
-    }
-
-    [Fact]
-    public async void ItShouldNotPerformASideEffectForAResolutionWithoutAwaiting()
-    {
-      int actualValue = 0;
-      int expectedValue = 0;
-
-      _ = Task.FromResult(5)
-        .IfFaulted((Exception _) =>
-        {
-          actualValue = 5;
-        });
-
-      await Task.Delay(10);
-
-      Assert.Equal(expectedValue, actualValue);
-    }
-
-    public class WithTaskFunc
-    {
-      [Fact]
-      public async void ItShouldPerformASideEffectWithoutAwaiting()
-      {
-        int actualValue = 0;
-        int expectedValue = 5;
-        Func<Exception, Task<string>> func = exception =>
-        {
-          actualValue = 5;
-
-          return Task.FromResult(Guid.NewGuid().ToString());
-        };
-
-        _ = Task.FromException<int>(new ArgumentNullException())
-          .IfFaulted(func);
-
-        await Task.Delay(10);
-
-        Assert.Equal(expectedValue, actualValue);
-      }
-
-      [Fact]
-      public async void ItShouldNotPerformASideEffectForAResolution()
-      {
-        int actualValue = 0;
-        int expectedValue = 0;
-        Func<Exception, Task<string>> func = exception =>
-        {
-          actualValue = 5;
-
-          return Task.FromResult(Guid.NewGuid().ToString());
-        };
-
-        await Task.FromResult(5)
-          .IfFaulted(func);
-
-        Assert.Equal(expectedValue, actualValue);
-      }
-
-      [Fact]
-      public async void ItShouldNotChangeExceptionTypesForExceptionThrowingFunc()
-      {
-        Func<Exception, Task<string>> func = exception =>
-        {
-          throw new InvalidOperationException();
-        };
-
-        await Assert.ThrowsAsync<ArgumentNullException>(async () => await Task.FromException<int>(new ArgumentNullException())
-            .IfFaulted(func));
-      }
-    }
-
-    public class WithAsyncAction
-    {
-      [Fact]
-      public async void ItShouldContinueAsyncTasks()
-      {
-        int actualValue = 0;
-        int expectedValue = 5;
-        Func<Exception, Task> func = async exception =>
-        {
-          await Task.Delay(1);
-
-          actualValue = 5;
-        };
-
-        _ = Task.FromException<int>(new Exception())
-          .IfFaulted(func);
-
-        await Task.Delay(10);
-
-        Assert.Equal(expectedValue, actualValue);
       }
     }
   }

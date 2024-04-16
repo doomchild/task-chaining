@@ -6,7 +6,7 @@ namespace RLC.TaskChaining;
 
 using static TaskStatics;
 
-public static class TaskExtensions
+public static partial class TaskExtensions
 {
   #region Monadic Functions
 
@@ -441,94 +441,6 @@ public static class TaskExtensions
     value => Task.FromException<TNext>(faultMorphism(value))
   ).Unwrap();
 
-  /// <summary>
-  /// Performs an action if the <see name="Task{T}"/> is in a fulfilled state.
-  /// </summary>
-  /// <typeparam name="T">The task's underlying type.</typeparam>
-  /// <param name="consumer">The action to perform if the task is fulfilled.</param>
-  /// <returns>The task.</returns>
-  public static Task<T> IfFulfilled<T>(this Task<T> task, Action<T> consumer)
-    => task.ResultMap(TaskStatics.Tap(consumer));
-
-  /// <summary>
-  /// Executes a function and throws away the result if the <see name="Task{T}"/> is in a fulfilled state.
-  /// </summary>
-  /// <typeparam name="T">The task's underlying type.</typeparam>
-  /// <typeparam name="R">The type of the discarded result of <paramref name="func"/>.</typeparam>
-  /// <param name="task">The task.</param>
-  /// <param name="func">The function to execute if the task is fulfilled.</param>
-  /// <returns>The task.</returns>
-  public static Task<T> IfFulfilled<T, R>(this Task<T> task, Func<T, Task<R>> func)
-    => task.ContinueWith(async continuationTask =>
-    {
-      if (continuationTask.IsFaulted)
-      {
-        return continuationTask;
-      }
-      else
-      {
-        T value = await continuationTask;
-
-        return Task.FromResult(value).Then(func).Then(_ => value, _ => value);
-      }
-    }).Unwrap().Unwrap();
-
-  /// <summary>
-  /// Executes a function and throws away the result if the <see name="Task{T}"/> is in a fulfilled state.
-  /// </summary>
-  /// <typeparam name="T">The task's underlying type.</typeparam>
-  /// <typeparam name="R">The type of the discarded result of <paramref name="func"/>.</typeparam>
-  /// <param name="task">The task.</param>
-  /// <param name="func">The function to execute if the task is fulfilled.</param>
-  /// <returns>The task.</returns>
-  public static Task<T> IfFulfilled<T>(this Task<T> task, Func<T, Task> func)
-    => task.IfFulfilled<T, T>(value => Task.FromResult(value).Then(func).Then(_ => value, _ => value));
-
-  /// <summary>
-  /// Performs an action if the <see name="Task{T}"/> is in a faulted state.
-  /// </summary>
-  /// <typeparam name="T">The task's underlying type.</typeparam>
-  /// <param name="onFaulted">The action to perform if the task is faulted.</param>
-  /// <returns>The task.</returns>
-  public static Task<T> IfFaulted<T>(this Task<T> task, Action<Exception> onFaulted)
-    => task.ExceptionMap(TaskStatics.Tap(onFaulted));
-
-  /// <summary>
-  /// Executes a function and throws away the result if the <see name="Task{T}"/> is in a faulted state.
-  /// </summary>
-  /// <typeparam name="T">The task's underlying type.</typeparam>
-  /// <typeparam name="R">The output task's underlying type.</typeparam>
-  /// <param name="onFaulted">The function to execute if the task is faulted.</param>
-  /// <returns>The task.</returns>
-  public static Task<T> IfFaulted<T, R>(this Task<T> task, Func<Exception, Task<R>> onFaulted)
-    => task.ContinueWith(continuationTask =>
-    {
-      if (continuationTask.IsFaulted)
-      {
-        Exception taskException = PotentiallyUnwindException(continuationTask.Exception!);
-
-        return Task.FromException<R>(PotentiallyUnwindException(continuationTask.Exception!))
-          .Catch<R>(ex => onFaulted(ex))
-          .Then(
-            _ => Task.FromException<T>(taskException),
-            _ => Task.FromException<T>(taskException)
-          );
-      }
-      else
-      {
-        return continuationTask;
-      }
-    }).Unwrap();
-
-  /// <summary>
-  /// Executes a function and throws away the result if the <see name="Task{T}"/> is in a faulted state.
-  /// </summary>
-  /// <typeparam name="T">The task's underlying type.</typeparam>
-  /// <param name="onFaulted">The function to execute if the task is faulted.</param>
-  /// <returns>The task.</returns>
-  public static Task<T> IfFaulted<T>(this Task<T> task, Func<Exception, Task> onFaulted)
-    => task.IfFaulted<T, T>(exception => onFaulted(exception).ContinueWith(continuationTask => Task.FromException<T>(exception)).Unwrap());
-
   public static Task<TNext> Retry<T, TNext>(
     this Task<T> task,
     Func<T, Task<TNext>> retryFunc,
@@ -543,105 +455,6 @@ public static class TaskExtensions
 
   public static Task<TNext> Retry<T, TNext>(this Task<T> task, Func<T, TNext> retryFunc)
     => task.Retry(retryFunc, RetryParams.Default);
-
-  /// <summary>
-  /// Executes a function and discards the result on a <see name="Task{T}"/> whether it is in a fulfilled or faulted state.
-  /// </summary>
-  /// <remarks>This method is useful if you need to perform a side effect without altering the <see name"Task{T}"/>'s
-  /// value, such as logging.</remarks>
-  /// <typeparam name="T">The task's underlying type.</typeparam>
-  /// <param name="onFulfilled">The function to execute if the task is fulfilled.</param>
-  /// <param name="onFaulted">The function to execute if the task is faulted.</param>
-  /// <returns>The task.</returns>
-  public static Task<T> Tap<T>(this Task<T> task, Action<T> onFulfilled, Action<Exception> onFaulted)
-    => task.IfFulfilled(onFulfilled).IfFaulted(onFaulted);
-
-  /// <summary>
-  /// Executes a function and discards the result on a <see name="Task{T}"/> whether it is in a fulfilled or faulted state.
-  /// </summary>
-  /// <remarks>This method is useful if you need to perform a side effect without altering the <see name"Task{T}"/>'s
-  /// value, such as logging.</remarks>
-  /// <typeparam name="T">The task's underlying type.</typeparam>
-  /// <typeparam name="R">The output type of the <paramref name="onFaulted" /> function.
-  /// <param name="onFulfilled">The function to execute if the task is fulfilled.</param>
-  /// <param name="onFaulted">The function to execute if the task is faulted.</param>
-  /// <returns>The task.</returns>
-  public static Task<T> Tap<T, R>(this Task<T> task, Action<T> onFulfilled, Func<Exception, Task<R>> onFaulted)
-    => task.IfFulfilled(onFulfilled).IfFaulted(onFaulted);
-
-  /// <summary>
-  /// Executes a function and discards the result on a <see name="Task{T}"/> whether it is in a fulfilled or faulted state.
-  /// </summary>
-  /// <remarks>This method is useful if you need to perform a side effect without altering the <see name"Task{T}"/>'s
-  /// value, such as logging.</remarks>
-  /// <typeparam name="T">The task's underlying type.</typeparam>
-  /// <param name="onFulfilled">The function to execute if the task is fulfilled.</param>
-  /// <param name="onFaulted">The function to execute if the task is faulted.</param>
-  /// <returns>The task.</returns>
-  public static Task<T> Tap<T>(this Task<T> task, Action<T> onFulfilled, Func<Exception, Task> onFaulted)
-    => task.IfFulfilled(onFulfilled).IfFaulted(onFaulted);
-
-  /// <summary>
-  /// Executes a function and discards the result on a <see name="Task{T}"/> whether it is in a fulfilled or faulted state.
-  /// </summary>
-  /// <remarks>This method is useful if you need to perform a side effect without altering the <see name"Task{T}"/>'s
-  /// value, such as logging.</remarks>
-  /// <typeparam name="T">The task's underlying type.</typeparam>
-  /// <typeparam name="R">The output type of the <paramref name="onFaulted" /> function.
-  /// <param name="onFulfilled">The action to perform if the task is fulfilled.</param>
-  /// <param name="onFaulted">The function to execute if the task is faulted.</param>
-  /// <returns>The task.</returns>
-  public static Task<T> Tap<T, R>(this Task<T> task, Func<T, Task<R>> onFulfilled, Action<Exception> onFaulted)
-    => task.IfFulfilled(onFulfilled).IfFaulted(onFaulted);
-
-  /// <summary>
-  /// Executes a function and discards the result on a <see name="Task{T}"/> whether it is in a fulfilled or faulted state.
-  /// </summary>
-  /// <remarks>This method is useful if you need to perform a side effect without altering the <see name"Task{T}"/>'s
-  /// value, such as logging.</remarks>
-  /// <typeparam name="T">The task's underlying type.</typeparam>
-  /// <param name="onFulfilled">The function to execute if the task is fulfilled.</param>
-  /// <param name="onFaulted">The function to execute if the task is faulted.</param>
-  /// <returns>The task.</returns>
-  public static Task<T> Tap<T>(this Task<T> task, Func<T, Task> onFulfilled, Action<Exception> onFaulted)
-    => task.IfFulfilled(onFulfilled).IfFaulted(onFaulted);
-
-  /// <summary>
-  /// Executes a function and discards the result on a <see name="Task{T}"/> whether it is in a fulfilled or faulted state.
-  /// </summary>
-  /// <remarks>This method is useful if you need to perform a side effect without altering the <see name"Task{T}"/>'s
-  /// value, such as logging.</remarks>
-  /// <typeparam name="T">The task's underlying type.</typeparam>
-  /// <typeparam name="R">The output type of the <paramref name="onFaulted" /> function.
-  /// <param name="onFulfilled">The function to execute if the task is fulfilled.</param>
-  /// <param name="onFaulted">The function to execute if the task is faulted.</param>
-  /// <returns>The task.</returns>
-  public static Task<T> Tap<T, R, S>(this Task<T> task, Func<T, Task<R>> onFulfilled, Func<Exception, Task<S>> onFaulted)
-    => task.IfFulfilled(onFulfilled).IfFaulted(onFaulted);
-
-  /// <summary>
-  /// Executes a function and discards the result on a <see name="Task{T}"/> whether it is in a fulfilled or faulted state.
-  /// </summary>
-  /// <remarks>This method is useful if you need to perform a side effect without altering the <see name"Task{T}"/>'s
-  /// value, such as logging.</remarks>
-  /// <typeparam name="T">The task's underlying type.</typeparam>
-  /// <param name="onFulfilled">The function to execute if the task is fulfilled.</param>
-  /// <param name="onFaulted">The function to execute if the task is faulted.</param>
-  /// <returns>The task.</returns>
-  public static Task<T> Tap<T>(this Task<T> task, Func<T, Task> onFulfilled, Func<Exception, Task> onFaulted)
-    => task.IfFulfilled(onFulfilled).IfFaulted(onFaulted);
-
-  /// <summary>
-  /// Executes a function and discards the result on a <see name="Task{T}"/> whether it is in a fulfilled or faulted state.
-  /// </summary>
-  /// <remarks>This method is useful if you need to perform a side effect without altering the <see name"Task{T}"/>'s
-  /// value, such as logging.</remarks>
-  /// <typeparam name="T">The task's underlying type.</typeparam>
-  /// <param name="onFulfilled">The function to execute if the task is fulfilled.</param>
-  /// <param name="onFaulted">The function to execute if the task is faulted.</param>
-  /// <returns>The task.</returns>
-  public static Task<T> Tap<T, R>(this Task<T> task, Func<T, Task> onFulfilled, Func<Exception, Task<R>> onFaulted)
-    => task.IfFulfilled(onFulfilled).IfFaulted(onFaulted);
 
   /// <summary>
   /// Transforms the value in a fulfilled <see name="Task{T}"/> to another type.
