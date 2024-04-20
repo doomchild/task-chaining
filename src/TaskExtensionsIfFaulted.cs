@@ -21,7 +21,6 @@ public static partial class TaskExtensions
 
       return Task.FromException<T>(exception);
     });
-  //=> task.ExceptionMap(TaskStatics.Tap(onFaulted));
 
   /// <summary>
   /// Executes a function and throws away the result if the <see name="Task{T}"/> is in a faulted state.
