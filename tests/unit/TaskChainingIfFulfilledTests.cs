@@ -108,18 +108,12 @@ public class TaskChainingIfFulfilledTests
     int expectedValue = 0;
     Func<int, string> func = _ => throw new TaskCanceledException();
 
-    try
-    {
-      _ = Task.FromResult<int>(0)
-        .Then(func)
-        .IfFulfilled(_ =>
-        {
-          actualValue = 5;
-        });
-    }
-    catch (OperationCanceledException)
-    {
-    }
+    _ = Task.FromResult<int>(0)
+      .Then(func)
+      .IfFulfilled(_ =>
+      {
+        actualValue = 5;
+      });
 
     await Task.Delay(2);
 
