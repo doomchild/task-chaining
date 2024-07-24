@@ -49,7 +49,7 @@ public static partial class TaskExtensions
     Task<Func<T, TNext>> morphismTask
   ) => morphismTask.IsFaulted
     ? Task.FromException<TNext>(PotentiallyUnwindException(morphismTask.Exception!))
-    : task.ResultMap(async value => (await morphismTask)(value)).Unwrap();
+    : task.ResultMap(value => morphismTask.Result(value));
 
   /// <summary>
   /// Monadic 'bimap'.
@@ -99,13 +99,13 @@ public static partial class TaskExtensions
     this Task<T> task,
     Func<Exception, Task<TNext>> onFaulted,
     Func<T, Task<TNext>> onFulfilled
-  ) => task.ContinueWith(async continuationTask =>
+  ) => task.ContinueWith(continuationTask =>
     {
       if (continuationTask.IsCanceled)
       {
         try
         {
-          await continuationTask;
+          T result = continuationTask.Result;
         }
         catch (OperationCanceledException exception)
         {
@@ -115,8 +115,8 @@ public static partial class TaskExtensions
 
       return continuationTask.IsFaulted
         ? onFaulted(PotentiallyUnwindException(continuationTask.Exception!))
-        : onFulfilled(await continuationTask);
-    }).Unwrap().Unwrap();
+        : onFulfilled(continuationTask.Result);
+    }).Unwrap();
 
   /// <summary>
   /// Disjunctive `leftMap`.
@@ -132,10 +132,10 @@ public static partial class TaskExtensions
     => task.BiMap(onFaulted, Identity);
 
   public static Task<T> ExceptionMap<T>(this Task<T> task, Func<Exception, Task<Exception>> onFaulted)
-    => task.ContinueWith(async continuationTask => continuationTask.IsFaulted
-      ? Task.FromException<T>(await onFaulted(PotentiallyUnwindException(continuationTask.Exception)))
+    => task.ContinueWith(continuationTask => continuationTask.IsFaulted
+      ? Task.FromException<T>(onFaulted(PotentiallyUnwindException(continuationTask.Exception)).Exception)
       : continuationTask
-    ).Unwrap().Unwrap();
+    ).Unwrap();
 
   /// <summary>
   /// Allows a fulfilled <see name="Task{T}"/> to be transitioned to a faulted one if the <paramref name="predicate"/>
@@ -211,11 +211,17 @@ public static partial class TaskExtensions
     this Task<T> task,
     Predicate<T> predicate,
     Func<T, Task<E>> morphism
-  ) where E : Exception => task.Bind(
-    async value => predicate(value)
-      ? Task.FromResult(value)
-      : Task.FromException<T>(await morphism(value))
-    ).Unwrap();
+  ) where E: Exception
+  {
+    return task.ContinueWith(continuationTask =>
+    {
+      T result = continuationTask.Result;
+
+      return predicate(result) == true
+        ? Task.FromResult(result)
+        : morphism(result).ContinueWith(failureTask => Task.FromException<T>(failureTask.Result)).Unwrap();
+    }).Unwrap();
+  }
 
   /// <summary>
   /// Allows a fulfilled <see name="Task{T}"/> to be transitioned to a faulted one if the <paramref name="predicate"/>
@@ -256,9 +262,23 @@ public static partial class TaskExtensions
   /// <param name="morphism">A function that produces the exception to fault with if the <paramref name="predicate"/>
   /// returns <code>false</code>.</param>
   /// <returns>The transformed task.</returns>
-  public static Task<T> Filter<T>(this Task<T> task, Func<T, Task<bool>> predicate, Func<T, Exception> morphism)
-    => task.Bind(async value => await predicate(value) ? Task.FromResult(value) : Task.FromException<T>(morphism(value)))
-    .Unwrap();
+  public static Task<T> Filter<T>(
+    this Task<T> task,
+    Func<T, Task<bool>> predicate,
+    Func<T, Exception> morphism
+  )
+  {
+    return task.ContinueWith(continuationTask =>
+    {
+      T predicateValue = continuationTask.Result;
+
+      return predicate(predicateValue)
+        .ContinueWith(predicateTask => predicateTask.Result
+                      ? Task.FromResult(predicateValue)
+                      : Task.FromException<T>(morphism(predicateValue))
+        ).Unwrap();
+    }).Unwrap();
+  }
 
   /// <summary>
   /// Allows a fulfilled <see cref="Task{T}"/> to be transitioned to a faulted one if the <paramref name="predicate"/>
@@ -275,7 +295,20 @@ public static partial class TaskExtensions
     this Task<T> task,
     Func<T, Task<bool>> predicate,
     Func<Task<E>> morphism
-  ) where E : Exception => task.Filter(predicate, _ => morphism());
+  ) where E : Exception
+  {
+    return task.ContinueWith(continuationTask =>
+    {
+      T continuationValue = continuationTask.Result;
+
+      return predicate(continuationValue).ContinueWith(predicateTask =>
+      {
+        return predicateTask.Result
+          ? Task.FromResult(continuationValue)
+          : morphism().ContinueWith(morphismTask => Task.FromException<T>(morphismTask.Result)).Unwrap();
+      }).Unwrap();
+    }).Unwrap();
+  }
 
   /// <summary>
   /// Allows a fulfilled <see cref="Task{T}"/> to be transitioned to a faulted one if the <paramref name="predicate"/>
@@ -292,11 +325,20 @@ public static partial class TaskExtensions
     this Task<T> task,
     Func<T, Task<bool>> predicate,
     Func<T, Task<E>> morphism
-  ) where E : Exception => task.Bind(
-    async value => (await predicate(value))
-    ? Task.FromResult(value)
-    : Task.FromException<T>(await morphism(value))
-  ).Unwrap();
+  ) where E : Exception
+  {
+    return task.ContinueWith(continuationTask =>
+    {
+      T continuationValue = continuationTask.Result;
+
+      return predicate(continuationValue).ContinueWith(predicateTask =>
+      {
+        return predicateTask.Result
+          ? Task.FromResult(continuationValue)
+          : morphism(continuationValue).ContinueWith(morphismTask => Task.FromException<T>(morphismTask.Result)).Unwrap();
+      }).Unwrap();
+    }).Unwrap();
+  }
 
   /// <summary>
   /// Disjunctive 'rightMap'.  Can be thought of as 'fmap' for <see name="Task{T}"/>s.
@@ -391,12 +433,11 @@ public static partial class TaskExtensions
     this Task<T> task,
     TimeSpan delayInterval,
     CancellationToken cancellationToken = default
-  ) => task.ContinueWith(async continuationTask =>
+  ) => task.ContinueWith(continuationTask =>
   {
-    await Task.Delay(delayInterval, cancellationToken);
-
-    return continuationTask;
-  }).Unwrap().Unwrap();
+    return Task.Delay(delayInterval, cancellationToken)
+      .ContinueWith(delayTask => continuationTask.Result);
+  }).Unwrap();
 
   /// <summary>
   /// Faults a <see cref="Task{T}"/> with a provided <see cref="Exception"/>.
