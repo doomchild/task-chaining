@@ -14,6 +14,20 @@ public static partial class TaskExtensions
     ? exception.InnerException
     : exception;
 
+  private static Exception HandleCancellation<T>(this Task<T> task)
+  {
+    try
+    {
+      T result = task.Result;
+
+      return new Exception("Expected canceled task");
+    }
+    catch (OperationCanceledException exception)
+    {
+      return exception;
+    }
+  }
+
   /// <summary>
   /// Monadic 'alt'.
   /// </summary>
@@ -103,14 +117,7 @@ public static partial class TaskExtensions
     {
       if (continuationTask.IsCanceled)
       {
-        try
-        {
-          T result = continuationTask.Result;
-        }
-        catch (OperationCanceledException exception)
-        {
-          return Task.FromException<TNext>(exception);
-        }
+        return Task.FromException<TNext>(HandleCancellation(task));
       }
 
       return continuationTask.IsFaulted
@@ -496,89 +503,4 @@ public static partial class TaskExtensions
 
   public static Task<TNext> Retry<T, TNext>(this Task<T> task, Func<T, TNext> retryFunc)
     => task.Retry(retryFunc, RetryParams.Default);
-
-  /// <summary>
-  /// Transforms the value in a fulfilled <see name="Task{T}"/> to another type.
-  /// </summary>
-  /// <remarks>This method is an alias to <code>Task.ResultMap</code>.</remarks>
-  /// <typeparam name="T">The task's underlying type.</typeparam>
-  /// <typeparam name="TNext">The transformed type.</typeparam>
-  /// <param name="onFulfilled">The transformation function.</param>
-  /// <returns>The transformed task.</returns>
-  public static Task<TNext> Then<T, TNext>(this Task<T> task, Func<T, TNext> onFulfilled)
-    => task.ResultMap(onFulfilled);
-
-  /// <summary>
-  /// Transforms the value in a fulfilled <see name="Task{T}"/> to another type.
-  /// </summary>
-  /// <remarks>This method is an alias to <code>Task.Bind</code>.</remarks>
-  /// <typeparam name="T">The task's underlying type.</typeparam>
-  /// <typeparam name="TNext">The transformed type.</typeparam>
-  /// <param name="onFulfilled">The transformation function.</param>
-  /// <returns>The transformed task.</returns>
-  public static Task<TNext> Then<T, TNext>(this Task<T> task, Func<T, Task<TNext>> onFulfilled)
-    => task.Bind(onFulfilled);
-
-  /// <summary>
-  /// Transforms both sides of a <see name="Task{T}"/>.
-  /// </summary>
-  /// <remarks>This method is an alias to <code>Task.BiBind</code>.</remarks>
-  /// <typeparam name="T">The task's underlying type.</typeparam>
-  /// <typeparam name="TNext">The transformed type.</typeparam>
-  /// <param name="onFulfilled">The transformation function for a fulfilled task.</param>
-  /// <param name="onFaulted">The transformation function for a faulted task.</param>
-  /// <returns>The transformed task.</returns>
-  public static Task<TNext> Then<T, TNext>(
-    this Task<T> task,
-    Func<T, TNext> onFulfilled,
-    Func<Exception, TNext> onFaulted
-  ) => task.BiBind(
-    Pipe2(onFaulted, Task.FromResult),
-    Pipe2(onFulfilled, Task.FromResult)
-  );
-
-  /// <summary>
-  /// Transforms both sides of a <see name="Task{T}"/>.
-  /// </summary>
-  /// <remarks>This method is an alias to <code>Task.BiBind</code>.</remarks>
-  /// <typeparam name="T">The task's underlying type.</typeparam>
-  /// <typeparam name="TNext">The transformed type.</typeparam>
-  /// <param name="onFulfilled">The transformation function for a fulfilled task.</param>
-  /// <param name="onFaulted">The transformation function for a faulted task.</param>
-  /// <returns>The transformed task.</returns>
-  public static Task<TNext> Then<T, TNext>(
-    this Task<T> task,
-    Func<T, TNext> onFulfilled,
-    Func<Exception, Task<TNext>> onFaulted
-  ) => task.BiBind(onFaulted, Pipe2(onFulfilled, Task.FromResult));
-
-  /// <summary>
-  /// Transforms both sides of a <see name="Task{T}"/>.
-  /// </summary>
-  /// <remarks>This method is an alias to <code>Task.BiBind</code>.</remarks>
-  /// <typeparam name="T">The task's underlying type.</typeparam>
-  /// <typeparam name="TNext">The transformed type.</typeparam>
-  /// <param name="onFulfilled">The transformation function for a fulfilled task.</param>
-  /// <param name="onFaulted">The transformation function for a faulted task.</param>
-  /// <returns>The transformed task.</returns>
-  public static Task<TNext> Then<T, TNext>(
-    this Task<T> task,
-    Func<T, Task<TNext>> onFulfilled,
-    Func<Exception, TNext> onFaulted
-  ) => task.BiBind(Pipe2(onFaulted, Task.FromResult), onFulfilled);
-
-  /// <summary>
-  /// Transforms both sides of a <see name="Task{T}"/>.
-  /// </summary>
-  /// <remarks>This method is an alias to <code>Task.BiBind</code>.</remarks>
-  /// <typeparam name="T">The task's underlying type.</typeparam>
-  /// <typeparam name="TNext">The transformed type.</typeparam>
-  /// <param name="onFulfilled">The transformation function for a fulfilled task.</param>
-  /// <param name="onFaulted">The transformation function for a faulted task.</param>
-  /// <returns>The transformed task.</returns>
-  public static Task<TNext> Then<T, TNext>(
-    this Task<T> task,
-    Func<T, Task<TNext>> onFulfilled,
-    Func<Exception, Task<TNext>> onFaulted
-  ) => task.BiBind(onFaulted, onFulfilled);
 }
