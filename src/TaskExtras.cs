@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace RLC.TaskChaining;
@@ -185,6 +187,37 @@ public static class TaskExtras
             );
           }
         ));
+  }
+
+  /// <summary>
+  /// Partitions a collection of <see cref="Task{T}"/> into faulted and fulfilled lists.
+  /// </summary>
+  /// <typeparam name="T">The underlying type of the tasks in <paramref name="tasks"/>.</typeparam>
+  /// <param name="tasks">The collection of tasks to partition.</param>
+  /// <returns>A tuple of the partitioned tasks.</returns>
+  public static Task<(IEnumerable<Task<T>> Faulted, IEnumerable<Task<T>> Fulfilled)> Partition<T>(
+    IEnumerable<Task<T>> tasks
+  )
+  {
+    return tasks.Aggregate<Task<T>, Task<(IEnumerable<Task<T>> Faulted, IEnumerable<Task<T>> Fulfilled)>>(
+      Task.FromResult(((IEnumerable<Task<T>>)new List<Task<T>>(), (IEnumerable<Task<T>>)new List<Task<T>>())),
+      ZipTasksWith<T, (IEnumerable<Task<T>> Faulted, IEnumerable<Task<T>> Fulfilled), (IEnumerable<Task<T>> Faulted, IEnumerable<Task<T>> Fulfilled), Exception>
+      (
+        (values, v) => (values.Faulted, values.Fulfilled.Append(Task.FromResult(v)).ToList()),
+        (values, v) => (values.Faulted.Append<Task<T>>(Task.FromException<T>(v)).ToList(), values.Fulfilled)
+      )
+    );
+  }
+
+  private static Func<Task<TAccum>, Task<TValue>, Task<TResult>> ZipTasksWith<TValue, TAccum, TResult, TException>(
+    Func<TAccum, TValue, TResult> f,
+    Func<TAccum, TException, TResult> g
+  ) where TException : Exception
+  {
+    return (b, a) => a.Then(
+      valueA => b.Then(valueB => f(valueB, valueA)),
+      error => b.Then(valueB => g(valueB, (TException)error))
+    );
   }
 
 	/// <summary>

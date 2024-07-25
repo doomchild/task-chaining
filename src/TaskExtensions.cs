@@ -14,6 +14,20 @@ public static partial class TaskExtensions
     ? exception.InnerException
     : exception;
 
+  private static Exception HandleCancellation<T>(this Task<T> task)
+  {
+    try
+    {
+      T result = task.Result;
+
+      return new Exception("Expected canceled task");
+    }
+    catch (OperationCanceledException exception)
+    {
+      return exception;
+    }
+  }
+
   /// <summary>
   /// Monadic 'alt'.
   /// </summary>
@@ -49,7 +63,7 @@ public static partial class TaskExtensions
     Task<Func<T, TNext>> morphismTask
   ) => morphismTask.IsFaulted
     ? Task.FromException<TNext>(PotentiallyUnwindException(morphismTask.Exception!))
-    : task.ResultMap(async value => (await morphismTask)(value)).Unwrap();
+    : task.ResultMap(value => morphismTask.Result(value));
 
   /// <summary>
   /// Monadic 'bimap'.
@@ -99,24 +113,17 @@ public static partial class TaskExtensions
     this Task<T> task,
     Func<Exception, Task<TNext>> onFaulted,
     Func<T, Task<TNext>> onFulfilled
-  ) => task.ContinueWith(async continuationTask =>
+  ) => task.ContinueWith(continuationTask =>
     {
       if (continuationTask.IsCanceled)
       {
-        try
-        {
-          await continuationTask;
-        }
-        catch (OperationCanceledException exception)
-        {
-          return Task.FromException<TNext>(exception);
-        }
+        return Task.FromException<TNext>(HandleCancellation(task));
       }
 
       return continuationTask.IsFaulted
         ? onFaulted(PotentiallyUnwindException(continuationTask.Exception!))
-        : onFulfilled(await continuationTask);
-    }).Unwrap().Unwrap();
+        : onFulfilled(continuationTask.Result);
+    }).Unwrap();
 
   /// <summary>
   /// Disjunctive `leftMap`.
@@ -132,10 +139,10 @@ public static partial class TaskExtensions
     => task.BiMap(onFaulted, Identity);
 
   public static Task<T> ExceptionMap<T>(this Task<T> task, Func<Exception, Task<Exception>> onFaulted)
-    => task.ContinueWith(async continuationTask => continuationTask.IsFaulted
-      ? Task.FromException<T>(await onFaulted(PotentiallyUnwindException(continuationTask.Exception)))
+    => task.ContinueWith(continuationTask => continuationTask.IsFaulted
+      ? Task.FromException<T>(onFaulted(PotentiallyUnwindException(continuationTask.Exception)).Exception)
       : continuationTask
-    ).Unwrap().Unwrap();
+    ).Unwrap();
 
   /// <summary>
   /// Allows a fulfilled <see name="Task{T}"/> to be transitioned to a faulted one if the <paramref name="predicate"/>
@@ -211,11 +218,17 @@ public static partial class TaskExtensions
     this Task<T> task,
     Predicate<T> predicate,
     Func<T, Task<E>> morphism
-  ) where E : Exception => task.Bind(
-    async value => predicate(value)
-      ? Task.FromResult(value)
-      : Task.FromException<T>(await morphism(value))
-    ).Unwrap();
+  ) where E: Exception
+  {
+    return task.ContinueWith(continuationTask =>
+    {
+      T result = continuationTask.Result;
+
+      return predicate(result) == true
+        ? Task.FromResult(result)
+        : morphism(result).ContinueWith(failureTask => Task.FromException<T>(failureTask.Result)).Unwrap();
+    }).Unwrap();
+  }
 
   /// <summary>
   /// Allows a fulfilled <see name="Task{T}"/> to be transitioned to a faulted one if the <paramref name="predicate"/>
@@ -256,9 +269,23 @@ public static partial class TaskExtensions
   /// <param name="morphism">A function that produces the exception to fault with if the <paramref name="predicate"/>
   /// returns <code>false</code>.</param>
   /// <returns>The transformed task.</returns>
-  public static Task<T> Filter<T>(this Task<T> task, Func<T, Task<bool>> predicate, Func<T, Exception> morphism)
-    => task.Bind(async value => await predicate(value) ? Task.FromResult(value) : Task.FromException<T>(morphism(value)))
-    .Unwrap();
+  public static Task<T> Filter<T>(
+    this Task<T> task,
+    Func<T, Task<bool>> predicate,
+    Func<T, Exception> morphism
+  )
+  {
+    return task.ContinueWith(continuationTask =>
+    {
+      T predicateValue = continuationTask.Result;
+
+      return predicate(predicateValue)
+        .ContinueWith(predicateTask => predicateTask.Result
+                      ? Task.FromResult(predicateValue)
+                      : Task.FromException<T>(morphism(predicateValue))
+        ).Unwrap();
+    }).Unwrap();
+  }
 
   /// <summary>
   /// Allows a fulfilled <see cref="Task{T}"/> to be transitioned to a faulted one if the <paramref name="predicate"/>
@@ -275,7 +302,20 @@ public static partial class TaskExtensions
     this Task<T> task,
     Func<T, Task<bool>> predicate,
     Func<Task<E>> morphism
-  ) where E : Exception => task.Filter(predicate, _ => morphism());
+  ) where E : Exception
+  {
+    return task.ContinueWith(continuationTask =>
+    {
+      T continuationValue = continuationTask.Result;
+
+      return predicate(continuationValue).ContinueWith(predicateTask =>
+      {
+        return predicateTask.Result
+          ? Task.FromResult(continuationValue)
+          : morphism().ContinueWith(morphismTask => Task.FromException<T>(morphismTask.Result)).Unwrap();
+      }).Unwrap();
+    }).Unwrap();
+  }
 
   /// <summary>
   /// Allows a fulfilled <see cref="Task{T}"/> to be transitioned to a faulted one if the <paramref name="predicate"/>
@@ -292,11 +332,20 @@ public static partial class TaskExtensions
     this Task<T> task,
     Func<T, Task<bool>> predicate,
     Func<T, Task<E>> morphism
-  ) where E : Exception => task.Bind(
-    async value => (await predicate(value))
-    ? Task.FromResult(value)
-    : Task.FromException<T>(await morphism(value))
-  ).Unwrap();
+  ) where E : Exception
+  {
+    return task.ContinueWith(continuationTask =>
+    {
+      T continuationValue = continuationTask.Result;
+
+      return predicate(continuationValue).ContinueWith(predicateTask =>
+      {
+        return predicateTask.Result
+          ? Task.FromResult(continuationValue)
+          : morphism(continuationValue).ContinueWith(morphismTask => Task.FromException<T>(morphismTask.Result)).Unwrap();
+      }).Unwrap();
+    }).Unwrap();
+  }
 
   /// <summary>
   /// Disjunctive 'rightMap'.  Can be thought of as 'fmap' for <see name="Task{T}"/>s.
@@ -391,12 +440,11 @@ public static partial class TaskExtensions
     this Task<T> task,
     TimeSpan delayInterval,
     CancellationToken cancellationToken = default
-  ) => task.ContinueWith(async continuationTask =>
+  ) => task.ContinueWith(continuationTask =>
   {
-    await Task.Delay(delayInterval, cancellationToken);
-
-    return continuationTask;
-  }).Unwrap().Unwrap();
+    return Task.Delay(delayInterval, cancellationToken)
+      .ContinueWith(delayTask => continuationTask.Result);
+  }).Unwrap();
 
   /// <summary>
   /// Faults a <see cref="Task{T}"/> with a provided <see cref="Exception"/>.
@@ -455,89 +503,4 @@ public static partial class TaskExtensions
 
   public static Task<TNext> Retry<T, TNext>(this Task<T> task, Func<T, TNext> retryFunc)
     => task.Retry(retryFunc, RetryParams.Default);
-
-  /// <summary>
-  /// Transforms the value in a fulfilled <see name="Task{T}"/> to another type.
-  /// </summary>
-  /// <remarks>This method is an alias to <code>Task.ResultMap</code>.</remarks>
-  /// <typeparam name="T">The task's underlying type.</typeparam>
-  /// <typeparam name="TNext">The transformed type.</typeparam>
-  /// <param name="onFulfilled">The transformation function.</param>
-  /// <returns>The transformed task.</returns>
-  public static Task<TNext> Then<T, TNext>(this Task<T> task, Func<T, TNext> onFulfilled)
-    => task.ResultMap(onFulfilled);
-
-  /// <summary>
-  /// Transforms the value in a fulfilled <see name="Task{T}"/> to another type.
-  /// </summary>
-  /// <remarks>This method is an alias to <code>Task.Bind</code>.</remarks>
-  /// <typeparam name="T">The task's underlying type.</typeparam>
-  /// <typeparam name="TNext">The transformed type.</typeparam>
-  /// <param name="onFulfilled">The transformation function.</param>
-  /// <returns>The transformed task.</returns>
-  public static Task<TNext> Then<T, TNext>(this Task<T> task, Func<T, Task<TNext>> onFulfilled)
-    => task.Bind(onFulfilled);
-
-  /// <summary>
-  /// Transforms both sides of a <see name="Task{T}"/>.
-  /// </summary>
-  /// <remarks>This method is an alias to <code>Task.BiBind</code>.</remarks>
-  /// <typeparam name="T">The task's underlying type.</typeparam>
-  /// <typeparam name="TNext">The transformed type.</typeparam>
-  /// <param name="onFulfilled">The transformation function for a fulfilled task.</param>
-  /// <param name="onFaulted">The transformation function for a faulted task.</param>
-  /// <returns>The transformed task.</returns>
-  public static Task<TNext> Then<T, TNext>(
-    this Task<T> task,
-    Func<T, TNext> onFulfilled,
-    Func<Exception, TNext> onFaulted
-  ) => task.BiBind(
-    Pipe2(onFaulted, Task.FromResult),
-    Pipe2(onFulfilled, Task.FromResult)
-  );
-
-  /// <summary>
-  /// Transforms both sides of a <see name="Task{T}"/>.
-  /// </summary>
-  /// <remarks>This method is an alias to <code>Task.BiBind</code>.</remarks>
-  /// <typeparam name="T">The task's underlying type.</typeparam>
-  /// <typeparam name="TNext">The transformed type.</typeparam>
-  /// <param name="onFulfilled">The transformation function for a fulfilled task.</param>
-  /// <param name="onFaulted">The transformation function for a faulted task.</param>
-  /// <returns>The transformed task.</returns>
-  public static Task<TNext> Then<T, TNext>(
-    this Task<T> task,
-    Func<T, TNext> onFulfilled,
-    Func<Exception, Task<TNext>> onFaulted
-  ) => task.BiBind(onFaulted, Pipe2(onFulfilled, Task.FromResult));
-
-  /// <summary>
-  /// Transforms both sides of a <see name="Task{T}"/>.
-  /// </summary>
-  /// <remarks>This method is an alias to <code>Task.BiBind</code>.</remarks>
-  /// <typeparam name="T">The task's underlying type.</typeparam>
-  /// <typeparam name="TNext">The transformed type.</typeparam>
-  /// <param name="onFulfilled">The transformation function for a fulfilled task.</param>
-  /// <param name="onFaulted">The transformation function for a faulted task.</param>
-  /// <returns>The transformed task.</returns>
-  public static Task<TNext> Then<T, TNext>(
-    this Task<T> task,
-    Func<T, Task<TNext>> onFulfilled,
-    Func<Exception, TNext> onFaulted
-  ) => task.BiBind(Pipe2(onFaulted, Task.FromResult), onFulfilled);
-
-  /// <summary>
-  /// Transforms both sides of a <see name="Task{T}"/>.
-  /// </summary>
-  /// <remarks>This method is an alias to <code>Task.BiBind</code>.</remarks>
-  /// <typeparam name="T">The task's underlying type.</typeparam>
-  /// <typeparam name="TNext">The transformed type.</typeparam>
-  /// <param name="onFulfilled">The transformation function for a fulfilled task.</param>
-  /// <param name="onFaulted">The transformation function for a faulted task.</param>
-  /// <returns>The transformed task.</returns>
-  public static Task<TNext> Then<T, TNext>(
-    this Task<T> task,
-    Func<T, Task<TNext>> onFulfilled,
-    Func<Exception, Task<TNext>> onFaulted
-  ) => task.BiBind(onFaulted, onFulfilled);
 }
