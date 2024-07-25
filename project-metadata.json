@@ -2,7 +2,7 @@
   "name": "task-chaining",
   "description": "Extension methods to System.Threading.Task to allow Promise-like chaining",
   "title": "TaskChaining",
-  "version": "2.16.1",
+  "version": "2.17.0",
   "ciEnvironment": {
     "variables": [
       {
