@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 
+using FluentAssertions;
 using RLC.TaskChaining;
 using Xunit;
 
@@ -13,20 +13,38 @@ public class PartitionTests
   [Fact]
   public async Task ItShouldPartition()
   {
-    int expectedFulfills = 4;
-    int expectedFaults = 1;
+    Func<Task<string>> throwFunc = () => throw new NullReferenceException();
     List<Task<string>> tasks = new()
     {
       Task.FromResult("abc"),
       Task.FromResult("def"),
       Task.FromException<string>(new InvalidOperationException()),
       Task.FromResult("ghi"),
-      TaskExtras.Defer(() => Task.FromResult("jkl"), TimeSpan.FromSeconds(1))
+      TaskExtras.Defer(() => Task.FromResult("jkl"), TimeSpan.FromSeconds(1)),
+      TaskExtras.Defer(throwFunc, TimeSpan.FromSeconds(1))
+    };
+    List<string> expectedFulfillments = new()
+    {
+      "abc",
+      "def",
+      "ghi",
+      "jkl"
+    };
+    List<Exception> expectedFaults = new()
+    {
+      new InvalidOperationException(),
+      new NullReferenceException()
     };
 
-    (IEnumerable<Task<string>> Faulted, IEnumerable<Task<string>> Fulfilled) partition = await TaskExtras.Partition(tasks);
+    (IEnumerable<Exception> Faulted, IEnumerable<string> Fulfilled) partition = await TaskExtras.Partition(tasks);
 
-    Assert.Equal(expectedFaults, partition.Faulted.Count());
-    Assert.Equal(expectedFulfills, partition.Fulfilled.Count());
+    partition.Faulted.Should().BeEquivalentTo(
+      expectedFaults,
+      options => options.Excluding(ex => ex.TargetSite)
+        .Excluding(ex => ex.Source)
+        .Excluding(ex => ex.StackTrace)
+        .Excluding(ex => ex.HResult)
+    );
+    partition.Fulfilled.Should().BeEquivalentTo(expectedFulfillments);
   }
 }

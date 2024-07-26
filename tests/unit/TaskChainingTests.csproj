@@ -28,6 +28,7 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Jds.TestingUtils.MockHttp" Version="0.2.0" />
+    <PackageReference Include="FluentAssertions" Version="6.12" />
   </ItemGroup>
 
   <ItemGroup>

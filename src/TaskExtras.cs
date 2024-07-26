@@ -195,16 +195,16 @@ public static class TaskExtras
   /// <typeparam name="T">The underlying type of the tasks in <paramref name="tasks"/>.</typeparam>
   /// <param name="tasks">The collection of tasks to partition.</param>
   /// <returns>A tuple of the partitioned tasks.</returns>
-  public static Task<(IReadOnlyList<Task<T>> Faulted, IReadOnlyList<Task<T>> Fulfilled)> Partition<T>(
+  public static Task<(IReadOnlyList<Exception> Faulted, IReadOnlyList<T> Fulfilled)> Partition<T>(
     IEnumerable<Task<T>> tasks
   )
   {
-    return tasks.Aggregate<Task<T>, Task<(IReadOnlyList<Task<T>> Faulted, IReadOnlyList<Task<T>> Fulfilled)>>(
-      Task.FromResult(((IReadOnlyList<Task<T>>)new List<Task<T>>(), (IReadOnlyList<Task<T>>)new List<Task<T>>())),
-      ZipTasksWith<T, (IReadOnlyList<Task<T>> Faulted, IReadOnlyList<Task<T>> Fulfilled), (IReadOnlyList<Task<T>> Faulted, IReadOnlyList<Task<T>> Fulfilled), Exception>
+    return tasks.Aggregate<Task<T>, Task<(IReadOnlyList<Exception> Faulted, IReadOnlyList<T> Fulfilled)>>(
+      Task.FromResult(((IReadOnlyList<Exception>)new List<Exception>(), (IReadOnlyList<T>)new List<T>())),
+      ZipTasksWith<T, (IReadOnlyList<Exception> Faulted, IReadOnlyList<T> Fulfilled), (IReadOnlyList<Exception> Faulted, IReadOnlyList<T> Fulfilled), Exception>
       (
-        (values, v) => (values.Faulted, values.Fulfilled.Append(Task.FromResult(v)).ToList()),
-        (values, v) => (values.Faulted.Append<Task<T>>(Task.FromException<T>(v)).ToList(), values.Fulfilled)
+        (values, v) => (values.Faulted, values.Fulfilled.Append(v).ToList()),
+        (values, v) => (values.Faulted.Append<Exception>(v).ToList(), values.Fulfilled)
       )
     );
   }
