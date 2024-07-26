@@ -29,7 +29,7 @@ __create_release_branch () {
 }
 
 __get_current_version () {
-  jq --raw-output '.version' < "${PROJECT_HOME}/package.json"
+  jq --raw-output '.version' < "${PROJECT_HOME}/project-metadata.json"
 }
 
 __get_hashes () {
@@ -65,9 +65,8 @@ __has_matching_counts () {
 __update_version () {
   local nextVersion=${1}
 
-  npm --no-git-tag-version version "${nextVersion}" \
-    && npm --silent install \
-    && npm audit fix
+  jq '.version = ${nextVersion}' "${PROJECT_HOME}/project-metadata.json" > "${PROJECT_HOME}/temp-metadata.json" \
+      && mv "${PROJECT_HOME}/temp-metadata.json" "${PROJECT_HOME}/project-metadata.json"
 }
 
 __promote () {
