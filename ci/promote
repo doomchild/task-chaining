@@ -1,0 +1,103 @@
+#!/usr/bin/env bash
+# shellcheck disable=SC2155 # Declare and assign separately to avoid masking return values.
+# shellcheck disable=SC2207 # Prefer mapfile or read -a to split command output.
+
+##
+# Setup environment.
+#
+# @see https://www.gnu.org/software/bash/manual/html_node/The-Set-Builtin.html
+##
+set -o errexit  # Exit immediately if pipeline fails.
+set -o errtrace # Subshells inherit ERR trap.
+set -o pipefail # Return last value of failing pipeline.
+
+declare PROJECT_HOME="$(cd "$(dirname "${BASH_SOURCE[0]}")" && cd .. && pwd)"
+
+cd "${PROJECT_HOME}" || exit 1;
+
+__commit_all_changes () {
+  local nextVersion=${1}
+
+  git add -A \
+    && git commit --message "Version bump to ${nextVersion}"
+}
+
+__create_release_branch () {
+  local nextVersion=${1}
+
+  git checkout -b "release/${nextVersion}" origin/dev
+}
+
+__get_current_version () {
+  jq --raw-output '.version' < "${PROJECT_HOME}/package.json"
+}
+
+__get_hashes () {
+  git log --format=%H --grep="^Revert" --invert-grep --no-merges origin/dev ^origin/master
+}
+
+__get_semvers () {
+  git log --format=%b --grep="^Revert" --invert-grep --no-merges origin/dev ^origin/master \
+    | grep -i "semver" \
+    | tr '[:upper:]' '[:lower:]' \
+    | cut -d ":" -f 2
+}
+
+__get_max_semver () {
+  __get_semvers | sort --unique | head --lines 1
+}
+
+__get_next_version () {
+  semver --increment "$(__get_max_semver)" "$(__get_current_version)"
+}
+
+__has_matching_counts () {
+  local hashes=$(__get_hashes)
+  local semvers=$(__get_semvers)
+
+  if [[ "${#hashes[@]}" -eq "${#semvers[@]}" ]]; then
+    echo true
+  else
+    echo false
+  fi
+}
+
+__update_version () {
+  local nextVersion=${1}
+
+  npm --no-git-tag-version version "${nextVersion}" \
+    && npm --silent install \
+    && npm audit fix
+}
+
+__promote () {
+  local hashes=$(__get_hashes)
+  local semvers=$(__get_semvers)
+  local currentBranch=$(git rev-parse --abbrev-ref HEAD)
+  local currentVersion=$(__get_current_version)
+  local maxSemVer=$(__get_max_semver)
+  local nextVersion=$(__get_next_version)
+  local semVers=($(__get_semvers))
+  local semVersJoined=$(printf ",%s" "${semVers[@]}")
+
+  echo "Current Version: ${currentVersion}" 1>&2
+  echo "SemVer Levels: ${semVersJoined:1}" 1>&2
+  echo "Max SemVer: ${maxSemVer}" 1>&2
+  echo "Next Version: ${nextVersion}" 1>&2
+
+  if [[ "${currentBranch}" == "dev" ]]; then
+    if [[ $(__has_matching_counts) == true ]]; then
+      __create_release_branch "${nextVersion}" \
+        && __update_version "${nextVersion}" \
+        && __commit_all_changes "${nextVersion}"
+    else
+      echo "error: Expected count of ${#semvers[@]} semvers to match count of ${#hashes[@]} hashes" 1>&2
+      exit 1
+    fi
+  else
+    echo "error: Expected current branch to be dev; found ${currentBranch}" 1>&2
+    exit 1
+  fi
+}
+
+__promote
