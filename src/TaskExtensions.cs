@@ -10,8 +10,8 @@ public static partial class TaskExtensions
 {
   #region Monadic Functions
 
-  private static Exception PotentiallyUnwindException(AggregateException exception) => exception.InnerException != null
-    ? exception.InnerException
+  private static Exception PotentiallyUnwindException(Exception exception) => exception is AggregateException aggregateException 
+    ? aggregateException.InnerException ?? exception
     : exception;
 
   private static Exception HandleCancellation<T>(this Task<T> task)
@@ -170,7 +170,7 @@ public static partial class TaskExtensions
   /// <paramref name="predicate"/> returns <code>false</code>.</param>
   /// <returns>The transformed task.</returns>
   public static Task<T> Filter<T>(this Task<T> task, Predicate<T> predicate, Func<Exception> supplier)
-    => task.Filter(predicate, _ => supplier());
+    => task.Filter(predicate, _ => PotentiallyUnwindException(supplier()));
 
   /// <summary>
   /// Allows a fulfilled <see cref="Task{T}"/> to be transitioned to a faulted one if the <paramref name="predicate"/>
@@ -184,7 +184,7 @@ public static partial class TaskExtensions
   /// returns <code>false</code>.</param>
   /// <returns>The transformed task.</returns>
   public static Task<T> Filter<T>(this Task<T> task, Predicate<T> predicate, Func<T, Exception> morphism)
-    => task.Bind(value => predicate(value) ? Task.FromResult(value) : Task.FromException<T>(morphism(value)));
+    => task.Bind(value => predicate(value) ? Task.FromResult(value) : Task.FromException<T>(PotentiallyUnwindException(morphism(value))));
 
   /// <summary>
   /// Allows a fulfilled <see cref="Task{T}"/> to be transitioned to a faulted one if the <paramref name="predicate"/>
@@ -201,7 +201,7 @@ public static partial class TaskExtensions
     this Task<T> task,
     Predicate<T> predicate,
     Func<Task<E>> morphism
-  ) where E : Exception => task.Filter(predicate, _ => morphism());
+  ) where E : Exception => task.Filter(predicate, _ => morphism().Then(PotentiallyUnwindException));
 
   /// <summary>
   /// Allows a fulfilled <see cref="Task{T}"/> to be transitioned to a faulted one if the <paramref name="predicate"/>
@@ -226,7 +226,7 @@ public static partial class TaskExtensions
 
       return predicate(result) == true
         ? Task.FromResult(result)
-        : morphism(result).ContinueWith(failureTask => Task.FromException<T>(failureTask.Result)).Unwrap();
+        : morphism(result).ContinueWith(failureTask => Task.FromException<T>(PotentiallyUnwindException(failureTask.Result))).Unwrap();
     }).Unwrap();
   }
 
@@ -256,7 +256,7 @@ public static partial class TaskExtensions
   /// <paramref name="predicate"/> returns <code>false</code>.</param>
   /// <returns>The transformed task.</returns>
   public static Task<T> Filter<T>(this Task<T> task, Func<T, Task<bool>> predicate, Func<Exception> supplier)
-    => task.Filter(predicate, _ => supplier());
+    => task.Filter(predicate, _ => PotentiallyUnwindException(supplier()));
 
   /// <summary>
   /// Allows a fulfilled <see cref="Task{T}"/> to be transitioned to a faulted one if the <paramref name="predicate"/>
@@ -282,7 +282,7 @@ public static partial class TaskExtensions
       return predicate(predicateValue)
         .ContinueWith(predicateTask => predicateTask.Result
                       ? Task.FromResult(predicateValue)
-                      : Task.FromException<T>(morphism(predicateValue))
+                      : Task.FromException<T>(PotentiallyUnwindException(morphism(predicateValue)))
         ).Unwrap();
     }).Unwrap();
   }
@@ -312,7 +312,7 @@ public static partial class TaskExtensions
       {
         return predicateTask.Result
           ? Task.FromResult(continuationValue)
-          : morphism().ContinueWith(morphismTask => Task.FromException<T>(morphismTask.Result)).Unwrap();
+          : morphism().ContinueWith(morphismTask => Task.FromException<T>(PotentiallyUnwindException(morphismTask.Result))).Unwrap();
       }).Unwrap();
     }).Unwrap();
   }
@@ -342,7 +342,7 @@ public static partial class TaskExtensions
       {
         return predicateTask.Result
           ? Task.FromResult(continuationValue)
-          : morphism(continuationValue).ContinueWith(morphismTask => Task.FromException<T>(morphismTask.Result)).Unwrap();
+          : morphism(continuationValue).ContinueWith(morphismTask => Task.FromException<T>(PotentiallyUnwindException(morphismTask.Result))).Unwrap();
       }).Unwrap();
     }).Unwrap();
   }
