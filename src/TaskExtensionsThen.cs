@@ -16,8 +16,20 @@ public static partial class TaskExtensions
   /// <typeparam name="TNext">The transformed type.</typeparam>
   /// <param name="onFulfilled">The transformation function.</param>
   /// <returns>The transformed task.</returns>
+  // public static Task<TNext> Then<T, TNext>(this Task<T> task, Func<T, TNext> onFulfilled)
+  //   => task.ResultMap(onFulfilled);
   public static Task<TNext> Then<T, TNext>(this Task<T> task, Func<T, TNext> onFulfilled)
-    => task.ResultMap(onFulfilled);
+    => task.ContinueWith(continuationTask =>
+    {
+      if (continuationTask.IsCanceled)
+      {
+        return Task.FromException<TNext>(HandleCancellation(task));
+      }
+
+      return continuationTask.IsFaulted
+        ? Task.FromException<TNext>(PotentiallyUnwindException(continuationTask.Exception))
+        : Task.FromResult(onFulfilled(continuationTask.Result));
+    }).Unwrap();
 
   /// <summary>
   /// Transforms the value in a fulfilled <see name="Task{T}"/> to another type.
@@ -28,7 +40,18 @@ public static partial class TaskExtensions
   /// <param name="onFulfilled">The transformation function.</param>
   /// <returns>The transformed task.</returns>
   public static Task<TNext> Then<T, TNext>(this Task<T> task, Func<T, Task<TNext>> onFulfilled)
-    => task.Bind(onFulfilled);
+  //=> task.Bind(onFulfilled);
+    => task.ContinueWith(continuationTask =>
+    {
+      if (continuationTask.IsCanceled)
+      {
+        return Task.FromException<TNext>(HandleCancellation(task));
+      }
+
+      return continuationTask.IsFaulted
+        ? Task.FromException<TNext>(PotentiallyUnwindException(continuationTask.Exception))
+        : onFulfilled(continuationTask.Result);
+    }).Unwrap();
 
   /// <summary>
   /// Transforms both sides of a <see name="Task{T}"/>.
