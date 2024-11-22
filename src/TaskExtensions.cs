@@ -226,7 +226,7 @@ public static partial class TaskExtensions
 
       return predicate(result) == true
         ? Task.FromResult(result)
-        : morphism(result).ContinueWith(failureTask => Task.FromException<T>(PotentiallyUnwindException(failureTask.Result))).Unwrap();
+        : morphism(result).Then(failureTask => Task.FromException<T>(PotentiallyUnwindException(failureTask)));
     }).Unwrap();
   }
 
@@ -280,10 +280,10 @@ public static partial class TaskExtensions
       T predicateValue = continuationTask.Result;
 
       return predicate(predicateValue)
-        .ContinueWith(predicateTask => predicateTask.Result
-                      ? Task.FromResult(predicateValue)
-                      : Task.FromException<T>(PotentiallyUnwindException(morphism(predicateValue)))
-        ).Unwrap();
+        .Then(predicateResult => predicateResult
+          ? Task.FromResult(predicateValue)
+          : Task.FromException<T>(PotentiallyUnwindException(morphism(predicateValue)))
+        );
     }).Unwrap();
   }
 
@@ -312,7 +312,7 @@ public static partial class TaskExtensions
       {
         return predicateTask.Result
           ? Task.FromResult(continuationValue)
-          : morphism().ContinueWith(morphismTask => Task.FromException<T>(PotentiallyUnwindException(morphismTask.Result))).Unwrap();
+          : morphism().Then(exception => Task.FromException<T>(PotentiallyUnwindException(exception)));
       }).Unwrap();
     }).Unwrap();
   }
@@ -342,7 +342,7 @@ public static partial class TaskExtensions
       {
         return predicateTask.Result
           ? Task.FromResult(continuationValue)
-          : morphism(continuationValue).ContinueWith(morphismTask => Task.FromException<T>(PotentiallyUnwindException(morphismTask.Result))).Unwrap();
+          : morphism(continuationValue).Then(exception => Task.FromException<T>(PotentiallyUnwindException(exception)));
       }).Unwrap();
     }).Unwrap();
   }
