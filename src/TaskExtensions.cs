@@ -34,6 +34,7 @@ public static partial class TaskExtensions
   /// <remarks>This method allows you to swap a faulted <see name="Task{T}"/> with an alternate
   /// <see name="Task{T}"/>.</remarks>
   /// <typeparam name="T">The task's underlying type.</typeparam>
+  /// <param name="task">The task.</param>
   /// <param name="other">The replacement <see name="Task{T}"/>.</param>
   /// <returns>The alternative value if the original <see name="Task{T}"/> was faulted, otherwise the original
   /// <see name="Task{T}"/>.</returns>
@@ -45,6 +46,7 @@ public static partial class TaskExtensions
   /// <remarks>This method allows you to swap a faulted <see name="Task{T}"/> with an alternate <see name="Task{T}"/>
   /// produced by the supplier function.</remarks>
   /// <typeparam name="T">The task's underlying type.</typeparam>
+  /// <param name="task">The task.</param>
   /// <param name="supplier">A supplier function.</param>
   /// <returns>The alternative value if the original <see name="Task{T}"/> was faulted, otherwise the original
   /// <see name="Task{T}"/>.</returns>
@@ -54,7 +56,7 @@ public static partial class TaskExtensions
   /// Monadic 'ap'.
   /// </summary>
   /// <typeparam name="T">The task's underlying type.</typeparam>
-  /// <typeparams name="TR">The type of the other input value to <paramref name="morphismTask"/>.</typeparam>
+  /// <typeparam name="TR">The type of the other input value to <paramref name="morphismTask"/>.</typeparam>
   /// <typeparam name="TNext">The transformed type.</typeparam>
   /// <param name="morphismTask">A <see cref="Task{Func{T, TR, TNext}}"/> containing the transformation function. </param>
   /// <returns>The transformed task.</returns>
@@ -74,6 +76,7 @@ public static partial class TaskExtensions
   /// does NOT allow a faulted <see name="Task{T}"/> to be transitioned back into a fulfilled one.</remarks>
   /// <typeparam name="T">The task's underlying type.</typeparam>
   /// <typeparam name="TNext">The transformed type.</typeparam>
+  /// <param name="task">The task.</param>
   /// <param name="onFaulted">The function to run if the task is faulted.</param>
   /// <param name="onFulfilled">The function to run if the task is fulfilled.</param>
   /// <returns>The transformed task.</returns>
@@ -93,6 +96,7 @@ public static partial class TaskExtensions
   /// value into a wrapped <see name="Task{T}"/>.</remarks>
   /// <typeparam name="T">The task's underlying type.</typeparam>
   /// <typeparam name="TNext">The transformed type.</typeparam>
+  /// <param name="task">The task.</param>
   /// <param name="onFulfilled">The function to run if the task is fulfilled.</param>
   /// <returns>The transformed task.</returns>
   public static Task<TNext> Bind<T, TNext>(this Task<T> task, Func<T, Task<TNext>> onFulfilled) => task.BiBind(
@@ -133,6 +137,7 @@ public static partial class TaskExtensions
   /// This can be used to transform an <see name="Exception"/> to add context or to use a custom exception
   /// type.</remarks>
   /// <typeparam name="T">The task's underlying type.</typeparam>
+  /// <param name="task">The task.</param>
   /// <param name="onFaulted">The transformation function.</param>
   /// <returns>The transformated task.</returns>
   public static Task<T> ExceptionMap<T>(this Task<T> task, Func<Exception, Exception> onFaulted)
@@ -151,6 +156,7 @@ public static partial class TaskExtensions
   /// <remarks>This method provides another way to perform validation on the value contained within the
   /// <see name="Task{T}"/>.</remarks>
   /// <typeparam name="T">The task's underlying type.</typeparam>
+  /// <param name="task">The task.</param>
   /// <param name="predicate">The predicate to run on the <see name="Task{T}"/>'s value.</param>
   /// <param name="exception">The exception to fault with if the <paramref name="predicate"/> returns
   /// <code>false</code>.</param>
@@ -165,6 +171,7 @@ public static partial class TaskExtensions
   /// <remarks>This method provides another way to perform validation on the value contained within the
   /// <see name="Task{T}"/>.</remarks>
   /// <typeparam name="T">The task's underlying type.</typeparam>
+  /// <param name="task">The task.</param>
   /// <param name="predicate">The predicate to run on the <see name="Task{T}"/>'s value.</param>
   /// <param name="supplier">A supplier function that produces the exception to fault with if the
   /// <paramref name="predicate"/> returns <code>false</code>.</param>
@@ -179,6 +186,7 @@ public static partial class TaskExtensions
   /// <remarks>This method provides another way to perform validation on the value contained within the
   /// <see name="Task{T}"/>.</remarks>
   /// <typeparam name="T">The task's underlying type.</typeparam>
+  /// <param name="task">The task.</param>
   /// <param name="predicate">The predicate to run on the <see cref="Task{T}"/>'s value.</param>
   /// <param name="morphism">A function that produces the exception to fault with if the <paramref name="predicate"/>
   /// returns <code>false</code>.</param>
@@ -222,11 +230,16 @@ public static partial class TaskExtensions
   {
     return task.ContinueWith(continuationTask =>
     {
-      T result = continuationTask.Result;
+      if (continuationTask.IsCompleted)
+      {
+        T result = continuationTask.Result;
 
-      return predicate(result) == true
-        ? Task.FromResult(result)
-        : morphism(result).Then(failureTask => Task.FromException<T>(PotentiallyUnwindException(failureTask)));
+        return predicate(result) == true
+          ? Task.FromResult(result)
+          : morphism(result).Then(failureTask => Task.FromException<T>(PotentiallyUnwindException(failureTask)));
+      }
+
+      return continuationTask;
     }).Unwrap();
   }
 
@@ -237,6 +250,7 @@ public static partial class TaskExtensions
   /// <remarks>This method provides another way to perform validation on the value contained within the
   /// <see name="Task{T}"/>.</remarks>
   /// <typeparam name="T">The task's underlying type.</typeparam>
+  /// <param name="task">The task.</param>
   /// <param name="predicate">The predicate to run on the <see name="Task{T}"/>'s value.</param>
   /// <param name="exception">The exception to fault with if the <paramref name="predicate"/> returns
   /// <code>false</code>.</param>
@@ -251,6 +265,7 @@ public static partial class TaskExtensions
   /// <remarks>This method provides another way to perform validation on the value contained within the
   /// <see name="Task{T}"/>.</remarks>
   /// <typeparam name="T">The task's underlying type.</typeparam>
+  /// <param name="task">The task.</param>
   /// <param name="predicate">The predicate to run on the <see name="Task{T}"/>'s value.</param>
   /// <param name="supplier">A supplier function that produces the exception to fault with if the
   /// <paramref name="predicate"/> returns <code>false</code>.</param>
@@ -265,6 +280,7 @@ public static partial class TaskExtensions
   /// <remarks>This method provides another way to perform validation on the value contained within the
   /// <see name="Task{T}"/>.</remarks>
   /// <typeparam name="T">The task's underlying type.</typeparam>
+  /// <param name="task">The task.</param>
   /// <param name="predicate">The predicate to run on the <see cref="Task{T}"/>'s value.</param>
   /// <param name="morphism">A function that produces the exception to fault with if the <paramref name="predicate"/>
   /// returns <code>false</code>.</param>
@@ -277,13 +293,18 @@ public static partial class TaskExtensions
   {
     return task.ContinueWith(continuationTask =>
     {
-      T predicateValue = continuationTask.Result;
+      if (continuationTask.IsCompleted)
+      {
+        T predicateValue = continuationTask.Result;
 
-      return predicate(predicateValue)
-        .Then(predicateResult => predicateResult
-          ? Task.FromResult(predicateValue)
-          : Task.FromException<T>(PotentiallyUnwindException(morphism(predicateValue)))
-        );
+        return predicate(predicateValue)
+          .Then(predicateResult => predicateResult
+            ? Task.FromResult(predicateValue)
+            : Task.FromException<T>(PotentiallyUnwindException(morphism(predicateValue)))
+          );
+      }
+
+      return continuationTask;
     }).Unwrap();
   }
 
@@ -306,14 +327,19 @@ public static partial class TaskExtensions
   {
     return task.ContinueWith(continuationTask =>
     {
-      T continuationValue = continuationTask.Result;
-
-      return predicate(continuationValue).ContinueWith(predicateTask =>
+      if (continuationTask.IsCompleted)
       {
-        return predicateTask.Result
-          ? Task.FromResult(continuationValue)
-          : morphism().Then(exception => Task.FromException<T>(PotentiallyUnwindException(exception)));
-      }).Unwrap();
+        T continuationValue = continuationTask.Result;
+
+        return predicate(continuationValue).ContinueWith(predicateTask =>
+        {
+          return predicateTask.Result
+            ? Task.FromResult(continuationValue)
+            : morphism().Then(exception => Task.FromException<T>(PotentiallyUnwindException(exception)));
+        }).Unwrap();
+      }
+
+      return continuationTask;
     }).Unwrap();
   }
 
@@ -336,14 +362,20 @@ public static partial class TaskExtensions
   {
     return task.ContinueWith(continuationTask =>
     {
-      T continuationValue = continuationTask.Result;
-
-      return predicate(continuationValue).ContinueWith(predicateTask =>
+      if (continuationTask.IsCompleted)
       {
-        return predicateTask.Result
-          ? Task.FromResult(continuationValue)
-          : morphism(continuationValue).Then(exception => Task.FromException<T>(PotentiallyUnwindException(exception)));
-      }).Unwrap();
+        T continuationValue = continuationTask.Result;
+
+        return predicate(continuationValue).ContinueWith(predicateTask =>
+        {
+          return predicateTask.Result
+            ? Task.FromResult(continuationValue)
+            : morphism(continuationValue)
+              .Then(exception => Task.FromException<T>(PotentiallyUnwindException(exception)));
+        }).Unwrap();
+      }
+
+      return continuationTask;
     }).Unwrap();
   }
 
@@ -354,6 +386,7 @@ public static partial class TaskExtensions
   /// type.</remarks>
   /// <typeparam name="T">The task's underlying type.</typeparam>
   /// <typeparam name="TNext">The transformed type.</typeparam>
+  /// <param name="task">The task.</param>
   /// <param name="morphism">The transformation function.</param>
   /// <returns>The transformed task.</returns>
   public static Task<TNext> ResultMap<T, TNext>(this Task<T> task, Func<T, TNext> morphism)
@@ -363,6 +396,7 @@ public static partial class TaskExtensions
   /// Allows a faulted <see name="Task{T}"/> to be transitioned to a fulfilled one.
   /// </summary>
   /// <typeparam name="T">The task's underlying type.</typeparam>
+  /// <param name="task">The task.</param>
   /// <param name="morphism">The function to convert an <see name="Exception"/> into a <typeparamref name="T"/>.</param>
   /// <returns>The transformed task.</returns>
   public static Task<T> Recover<T>(this Task<T> task, Func<Exception, T> morphism)
@@ -372,6 +406,7 @@ public static partial class TaskExtensions
   /// Allows a faulted <see name="Task{T}"/> to be transitioned to a fulfilled one.
   /// </summary>
   /// <typeparam name="T">The task's underlying type.</typeparam>
+  /// <param name="task">The task.</param>
   /// <param name="morphism">The function to convert an <see name="Exception"/> into a <typeparamref name="T"/>.</param>
   /// <returns>The transformed task.</returns>
   public static Task<T> Recover<T>(this Task<T> task, Func<Exception, Task<T>> morphism)
@@ -384,6 +419,7 @@ public static partial class TaskExtensions
   /// </summary>
   /// <remarks>This method is an alias to <code>Task.Recover</code>.</remarks>
   /// <typeparam name="T">The task's underlying type.</typeparam>
+  /// <param name="task">The task.</param>
   /// <param name="onFaulted">The function to convert an <see name="Exception"/> into a
   /// <typeparamref name="T"/>.</param>
   /// <returns>The transformed task.</returns>
@@ -395,6 +431,7 @@ public static partial class TaskExtensions
   /// <remarks>This method is an alias to <code>Task.Recover</code> in order to line up with the expected Promise
   /// API.</remarks>
   /// <typeparam name="T">The task's underlying type.</typeparam>
+  /// <param name="task">The task.</param>
   /// <param name="onFaulted">The function to convert an <see name="Exception"/> into a
   /// <typeparamref name="T"/>.</param>
   /// <returns>The transformed task.</returns>
@@ -408,6 +445,7 @@ public static partial class TaskExtensions
   /// API.</remarks>
   /// <typeparam name="T">The task's underlying type.</typeparam>
   /// <typeparam name="TException">The type of exception to catch.</typeparam>
+  /// <param name="task">The task.</param>
   /// <param name="onFaulted">The function to convert a <typeparamref name="TException" /> into a
   /// <typeparamref name="T"/>.</param>
   /// <returns>The transformed task.</returns>
@@ -426,6 +464,7 @@ public static partial class TaskExtensions
   /// API.</remarks>
   /// <typeparam name="T">The task's underlying type.</typeparam>
   /// <typeparam name="TException">The type of exception to catch.</typeparam>
+  /// <param name="task">The task.</param>
   /// <param name="onFaulted">The function to convert a <typeparamref name="TException" /> into a
   /// <typeparamref name="T"/>.</param>
   /// <returns>The transformed task.</returns>
