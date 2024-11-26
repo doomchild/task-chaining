@@ -14,6 +14,7 @@ public static partial class TaskExtensions
   /// <remarks>This method is an alias to <code>Task.ResultMap</code>.</remarks>
   /// <typeparam name="T">The task's underlying type.</typeparam>
   /// <typeparam name="TNext">The transformed type.</typeparam>
+  /// <param name="task">The task.</param>
   /// <param name="onFulfilled">The transformation function.</param>
   /// <returns>The transformed task.</returns>
   public static Task<TNext> Then<T, TNext>(this Task<T> task, Func<T, TNext> onFulfilled)
@@ -25,6 +26,7 @@ public static partial class TaskExtensions
   /// <remarks>This method is an alias to <code>Task.Bind</code>.</remarks>
   /// <typeparam name="T">The task's underlying type.</typeparam>
   /// <typeparam name="TNext">The transformed type.</typeparam>
+  /// <param name="task">The task.</param>
   /// <param name="onFulfilled">The transformation function.</param>
   /// <returns>The transformed task.</returns>
   public static Task<TNext> Then<T, TNext>(this Task<T> task, Func<T, Task<TNext>> onFulfilled)
@@ -36,6 +38,7 @@ public static partial class TaskExtensions
   /// <remarks>This method is an alias to <code>Task.BiBind</code>.</remarks>
   /// <typeparam name="T">The task's underlying type.</typeparam>
   /// <typeparam name="TNext">The transformed type.</typeparam>
+  /// <param name="task">The task.</param>
   /// <param name="onFulfilled">The transformation function for a fulfilled task.</param>
   /// <param name="onFaulted">The transformation function for a faulted task.</param>
   /// <returns>The transformed task.</returns>
@@ -54,6 +57,7 @@ public static partial class TaskExtensions
   /// <remarks>This method is an alias to <code>Task.BiBind</code>.</remarks>
   /// <typeparam name="T">The task's underlying type.</typeparam>
   /// <typeparam name="TNext">The transformed type.</typeparam>
+  /// <param name="task">The task.</param>
   /// <param name="onFulfilled">The transformation function for a fulfilled task.</param>
   /// <param name="onFaulted">The transformation function for a faulted task.</param>
   /// <returns>The transformed task.</returns>
@@ -69,6 +73,7 @@ public static partial class TaskExtensions
   /// <remarks>This method is an alias to <code>Task.BiBind</code>.</remarks>
   /// <typeparam name="T">The task's underlying type.</typeparam>
   /// <typeparam name="TNext">The transformed type.</typeparam>
+  /// <param name="task">The task.</param>
   /// <param name="onFulfilled">The transformation function for a fulfilled task.</param>
   /// <param name="onFaulted">The transformation function for a faulted task.</param>
   /// <returns>The transformed task.</returns>
@@ -84,6 +89,7 @@ public static partial class TaskExtensions
   /// <remarks>This method is an alias to <code>Task.BiBind</code>.</remarks>
   /// <typeparam name="T">The task's underlying type.</typeparam>
   /// <typeparam name="TNext">The transformed type.</typeparam>
+  /// <param name="task">The task.</param>
   /// <param name="onFulfilled">The transformation function for a fulfilled task.</param>
   /// <param name="onFaulted">The transformation function for a faulted task.</param>
   /// <returns>The transformed task.</returns>
@@ -96,7 +102,8 @@ public static partial class TaskExtensions
   /// <summary>
   /// Transforms the value in a fulfilled <see name="Task{T}"/> to another type.
   /// </summary>
-  /// <typeparam name="T">The task's underlying type.</typeparams>
+  /// <typeparam name="T">The task's underlying type.</typeparam>
+  /// <param name="task">The task.</param>
   /// <typeparam name="TNext">The transformed type.</typeparam>
   /// <param name="onFulfilled">The transformation function.</param>
   /// <param name="cancellationToken">A cancellation token</param>
@@ -125,6 +132,7 @@ public static partial class TaskExtensions
   /// </summary>
   /// <typeparam name="T">The task's underlying type.</typeparam>
   /// <typeparam name="TNext">The transformed type.</typeparam>
+  /// <param name="task">The task.</param>
   /// <param name="onFulfilled">The transformation function for a fulfilled task.</param>
   /// <param name="onFaulted">The transformation function for a faulted task.</param>
   /// <param name="cancellationToken">A cancellation token.</param>
@@ -154,6 +162,7 @@ public static partial class TaskExtensions
   /// </summary>
   /// <typeparam name="T">The task's underlying type.</typeparam>
   /// <typeparam name="TNext">The transformed type.</typeparam>
+  /// <param name="task">The task.</param>
   /// <param name="onFulfilled">The transformation function for a fulfilled task.</param>
   /// <param name="onFaulted">The transformation function for a faulted task.</param>
   /// <param name="cancellationToken">A cancellation token.</param>
@@ -183,6 +192,7 @@ public static partial class TaskExtensions
   /// </summary>
   /// <typeparam name="T">The task's underlying type.</typeparam>
   /// <typeparam name="TNext">The transformed type.</typeparam>
+  /// <param name="task">The task.</param>
   /// <param name="onFulfilled">The transformation function for a fulfilled task.</param>
   /// <param name="onFaulted">The transformation function for a faulted task.</param>
   /// <param name="cancellationToken">A cancellation token.</param>
@@ -212,6 +222,7 @@ public static partial class TaskExtensions
   /// </summary>
   /// <typeparam name="T">The task's underlying type.</typeparam>
   /// <typeparam name="TNext">The transformed type.</typeparam>
+  /// <param name="task">The task.</param>
   /// <param name="onFulfilled">The transformation function for a fulfilled task.</param>
   /// <param name="onFaulted">The transformation function for a faulted task.</param>
   /// <param name="cancellationToken">A cancellation token.</param>
@@ -241,6 +252,7 @@ public static partial class TaskExtensions
   /// </summary>
   /// <typeparam name="T">The task's underlying type.</typeparam>
   /// <typeparam name="TNext">The transformed type.</typeparam>
+  /// <param name="task">The task.</param>
   /// <param name="onFulfilled">The transformation function for a fulfilled task.</param>
   /// <param name="onFaulted">The transformation function for a faulted task.</param>
   /// <param name="cancellationToken">A cancellation token.</param>
@@ -270,6 +282,7 @@ public static partial class TaskExtensions
   /// </summary>
   /// <typeparam name="T">The task's underlying type.</typeparam>
   /// <typeparam name="TNext">The transformed type.</typeparam>
+  /// <param name="task">The task.</param>
   /// <param name="onFulfilled">The transformation function for a fulfilled task.</param>
   /// <param name="onFaulted">The transformation function for a faulted task.</param>
   /// <param name="cancellationToken">A cancellation token.</param>

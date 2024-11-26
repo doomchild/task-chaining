@@ -14,6 +14,7 @@ public static partial class TaskExtensions
   /// <remarks>This method is useful if you need to perform a side effect without altering the <see name"Task{T}"/>'s
   /// value, such as logging.</remarks>
   /// <typeparam name="T">The task's underlying type.</typeparam>
+  /// <param name="task">The task.</param>
   /// <param name="onFulfilled">The function to execute if the task is fulfilled.</param>
   /// <param name="onFaulted">The function to execute if the task is faulted.</param>
   /// <returns>The task.</returns>
@@ -26,7 +27,8 @@ public static partial class TaskExtensions
   /// <remarks>This method is useful if you need to perform a side effect without altering the <see name"Task{T}"/>'s
   /// value, such as logging.</remarks>
   /// <typeparam name="T">The task's underlying type.</typeparam>
-  /// <typeparam name="R">The output type of the <paramref name="onFaulted" /> function.
+  /// <typeparam name="R">The output type of the <paramref name="onFaulted" /> function.</typeparam>
+  /// <param name="task">The task.</param>
   /// <param name="onFulfilled">The function to execute if the task is fulfilled.</param>
   /// <param name="onFaulted">The function to execute if the task is faulted.</param>
   /// <returns>The task.</returns>
@@ -39,6 +41,7 @@ public static partial class TaskExtensions
   /// <remarks>This method is useful if you need to perform a side effect without altering the <see name"Task{T}"/>'s
   /// value, such as logging.</remarks>
   /// <typeparam name="T">The task's underlying type.</typeparam>
+  /// <param name="task">The task.</param>
   /// <param name="onFulfilled">The function to execute if the task is fulfilled.</param>
   /// <param name="onFaulted">The function to execute if the task is faulted.</param>
   /// <returns>The task.</returns>
@@ -51,7 +54,8 @@ public static partial class TaskExtensions
   /// <remarks>This method is useful if you need to perform a side effect without altering the <see name"Task{T}"/>'s
   /// value, such as logging.</remarks>
   /// <typeparam name="T">The task's underlying type.</typeparam>
-  /// <typeparam name="R">The output type of the <paramref name="onFaulted" /> function.
+  /// <typeparam name="R">The output type of the <paramref name="onFaulted" /> function.</typeparam>
+  /// <param name="task">The task.</param>
   /// <param name="onFulfilled">The action to perform if the task is fulfilled.</param>
   /// <param name="onFaulted">The function to execute if the task is faulted.</param>
   /// <returns>The task.</returns>
@@ -64,6 +68,7 @@ public static partial class TaskExtensions
   /// <remarks>This method is useful if you need to perform a side effect without altering the <see name"Task{T}"/>'s
   /// value, such as logging.</remarks>
   /// <typeparam name="T">The task's underlying type.</typeparam>
+  /// <param name="task">The task.</param>
   /// <param name="onFulfilled">The function to execute if the task is fulfilled.</param>
   /// <param name="onFaulted">The function to execute if the task is faulted.</param>
   /// <returns>The task.</returns>
@@ -76,7 +81,8 @@ public static partial class TaskExtensions
   /// <remarks>This method is useful if you need to perform a side effect without altering the <see name"Task{T}"/>'s
   /// value, such as logging.</remarks>
   /// <typeparam name="T">The task's underlying type.</typeparam>
-  /// <typeparam name="R">The output type of the <paramref name="onFaulted" /> function.
+  /// <typeparam name="R">The output type of the <paramref name="onFaulted" /> function.</typeparam>
+  /// <param name="task">The task.</param>
   /// <param name="onFulfilled">The function to execute if the task is fulfilled.</param>
   /// <param name="onFaulted">The function to execute if the task is faulted.</param>
   /// <returns>The task.</returns>
@@ -89,6 +95,7 @@ public static partial class TaskExtensions
   /// <remarks>This method is useful if you need to perform a side effect without altering the <see name"Task{T}"/>'s
   /// value, such as logging.</remarks>
   /// <typeparam name="T">The task's underlying type.</typeparam>
+  /// <param name="task">The task.</param>
   /// <param name="onFulfilled">The function to execute if the task is fulfilled.</param>
   /// <param name="onFaulted">The function to execute if the task is faulted.</param>
   /// <returns>The task.</returns>
@@ -101,6 +108,7 @@ public static partial class TaskExtensions
   /// <remarks>This method is useful if you need to perform a side effect without altering the <see name"Task{T}"/>'s
   /// value, such as logging.</remarks>
   /// <typeparam name="T">The task's underlying type.</typeparam>
+  /// <param name="task">The task.</param>
   /// <param name="onFulfilled">The function to execute if the task is fulfilled.</param>
   /// <param name="onFaulted">The function to execute if the task is faulted.</param>
   /// <returns>The task.</returns>

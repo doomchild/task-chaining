@@ -12,6 +12,7 @@ public static partial class TaskExtensions
   /// Performs an action if the <see name="Task{T}"/> is in a faulted state.
   /// </summary>
   /// <typeparam name="T">The task's underlying type.</typeparam>
+  /// <param name="task">The task.</param>
   /// <param name="onFaulted">The action to perform if the task is faulted.</param>
   /// <returns>The task.</returns>
   public static Task<T> IfFaulted<T>(this Task<T> task, Action<Exception> onFaulted)
@@ -27,6 +28,7 @@ public static partial class TaskExtensions
   /// </summary>
   /// <typeparam name="T">The task's underlying type.</typeparam>
   /// <typeparam name="R">The output task's underlying type.</typeparam>
+  /// <param name="task">The task.</param>
   /// <param name="onFaulted">The function to execute if the task is faulted.</param>
   /// <returns>The task.</returns>
   public static Task<T> IfFaulted<T, R>(this Task<T> task, Func<Exception, Task<R>> onFaulted)
@@ -64,6 +66,7 @@ public static partial class TaskExtensions
   /// Executes a function and throws away the result if the <see name="Task{T}"/> is in a faulted state.
   /// </summary>
   /// <typeparam name="T">The task's underlying type.</typeparam>
+  /// <param name="task">The task.</param>
   /// <param name="onFaulted">The function to execute if the task is faulted.</param>
   /// <returns>The task.</returns>
   public static Task<T> IfFaulted<T>(this Task<T> task, Func<Exception, Task> onFaulted)

@@ -106,7 +106,7 @@ public static class TaskExtras
 		: Task.FromException<T>(value);
 
 	/// <summary>
-	/// Produces a fulfilled <see cref="Task{T}"/> using the output of the <paramref name="fulfillmentMorphism"/> if the
+	/// Produces a fulfilled <see cref="Task{T}"/> using the output of the <paramref name="resolutionSupplier"/> if the
 	/// <paramref name="predicate"/> returns <code>true</code>.
 	/// </summary>
 	/// <example>This is a handy way to return to a non-faulted state.  You might do something like the following:
@@ -121,7 +121,7 @@ public static class TaskExtras
 	/// </example>
 	/// <typeparam name="T">The task's underlying type.</typeparam>
 	/// <param name="predicate">A predicate to evaluate with the <see cref="Task{T}"/>'s <see cref="Exception"/>.</param>
-	/// <param name="fulfillmentMorphism">A function that takes an <see cref="Exception"/> and returns a
+	/// <param name="resolutionSupplier">A function that takes an <see cref="Exception"/> and returns a
 	/// <typeparamref name="T"/>.</param>
 	/// <returns>A function that performs fulfillment.</returns>
 	public static Func<Exception, Task<T>> ResolveIf<T>(
