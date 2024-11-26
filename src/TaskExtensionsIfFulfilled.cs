@@ -12,6 +12,7 @@ public static partial class TaskExtensions
   /// Performs an action if the <see name="Task{T}"/> is in a fulfilled state.
   /// </summary>
   /// <typeparam name="T">The task's underlying type.</typeparam>
+  /// <param name="task">The task.</param>
   /// <param name="consumer">The action to perform if the task is fulfilled.</param>
   /// <returns>The task.</returns>
   public static Task<T> IfFulfilled<T>(this Task<T> task, Action<T> consumer)
