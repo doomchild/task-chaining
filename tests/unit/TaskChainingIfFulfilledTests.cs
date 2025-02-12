@@ -202,5 +202,38 @@ public class TaskChainingIfFulfilledTests
 
       Assert.Equal(expectedValue, actualValue);
     }
+
+    [Fact]
+    public async Task ItShouldAwaitAsyncSideEffects()
+    {
+      int coin = 5;
+      int testValue = 12345;
+      int expectedSideEffectValue = 12345;
+      string expectedValue = "12345";
+      int? sideEffectIntValue = null;
+      string? sideEffectStringValue = null;
+      Func<string, Task> func = value =>
+      {
+        return Task.FromResult(value)
+          .Delay(TimeSpan.FromSeconds(1))
+          .Then(int.Parse)
+          .Then(v =>
+          {
+            sideEffectIntValue = v;
+            return v;
+          });
+      };
+
+      string actualValue = await Task.FromResult(testValue)
+        .Then(val => val.ToString())
+        .IfFulfilled(value => coin < 6
+          ? func(value)
+          : Task.FromResult(value)
+        );
+
+      Assert.Equal(expectedValue, actualValue);
+      Assert.Equal(expectedSideEffectValue, sideEffectIntValue);
+      Assert.Null(sideEffectStringValue);
+    }
   }
 }
