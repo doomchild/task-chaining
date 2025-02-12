@@ -1,10 +1,7 @@
 using System;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace RLC.TaskChaining;
-
-using static TaskStatics;
 
 public static partial class TaskExtensions
 {
@@ -50,5 +47,19 @@ public static partial class TaskExtensions
   /// <param name="func">The function to execute if the task is fulfilled.</param>
   /// <returns>The task.</returns>
   public static Task<T> IfFulfilled<T>(this Task<T> task, Func<T, Task> func)
-    => task.IfFulfilled<T, T>(value => Task.FromResult(value).Then(func).Then(_ => value, _ => value));
+    => task.ContinueWith(continuationTask =>
+    {
+      if (continuationTask.IsFaulted || continuationTask.IsCanceled)
+      {
+        return continuationTask;
+      }
+      else
+      {
+        return continuationTask.Then(async value =>
+        {
+          await func(value);
+          return value;
+        });
+      }
+    }).Unwrap();
 }
