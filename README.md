@@ -73,6 +73,8 @@ Task.FromResult("not-a-url")                                                  //
 
 The `IfFulfilled` and `IfFaulted` methods can be used to perform side effects such as logging when the `Task<T>` is in the fulfilled or faulted state, respectively.
 
+**NOTE**: These functions do _not_ trap errors. If the function passed to them throws an exception, the result is a faulted task with that exception.
+
 ```c#
 HttpClient client;  // Assuming this is coming from an HttpClientFactory or injected or whatever
 
