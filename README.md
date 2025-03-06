@@ -157,6 +157,29 @@ Task.FromException<int>(new ArgumentException())
   ))
 ```
 
+#### InvokeIf
+
+`InvokeIf` can be used to conditionally invoke a function. This is most useful for side effects.
+
+```c#
+Task.FromResult(someUrl)
+  .Then(httpClient.GetAsync)
+  .IfFulfilled(TaskExtras.InvokeIf(
+    httpResponse => !httpResponse.IsSuccessStatusCode,
+    httpResponse => _logger.LogWarning("Got '{StatusCode}' response from server", httpResponse.StatusCode)
+  );
+```
+
+However, it can be used with `.Then` as well:
+
+```c#
+Task.FromResult(4)
+  .Then(InvokeIf(
+    value => value % 2 == 0,
+    value => value + 1
+  );
+```
+
 [bluebird]: http://bluebirdjs.com/docs/getting-started.html
 [MONADS.md]: ./MONADS.md
 [nuget.org]: https://www.nuget.org/packages/RLC.TaskChaining/
