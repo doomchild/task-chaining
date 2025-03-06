@@ -106,7 +106,7 @@ public static class TaskExtras
 		: Task.FromException<T>(value);
 
 	/// <summary>
-	/// Produces a fulfilled <see cref="Task{T}"/> using the output of the <paramref name="fulfillmentMorphism"/> if the
+	/// Produces a fulfilled <see cref="Task{T}"/> using the output of the <paramref name="resolutionSupplier"/> if the
 	/// <paramref name="predicate"/> returns <code>true</code>.
 	/// </summary>
 	/// <example>This is a handy way to return to a non-faulted state.  You might do something like the following:
@@ -121,7 +121,7 @@ public static class TaskExtras
 	/// </example>
 	/// <typeparam name="T">The task's underlying type.</typeparam>
 	/// <param name="predicate">A predicate to evaluate with the <see cref="Task{T}"/>'s <see cref="Exception"/>.</param>
-	/// <param name="fulfillmentMorphism">A function that takes an <see cref="Exception"/> and returns a
+	/// <param name="resolutionSupplier">A function that takes an <see cref="Exception"/> and returns a
 	/// <typeparamref name="T"/>.</param>
 	/// <returns>A function that performs fulfillment.</returns>
 	public static Func<Exception, Task<T>> ResolveIf<T>(
@@ -130,6 +130,138 @@ public static class TaskExtras
 	) => value => predicate(value)
 		? resolutionSupplier(value)
 		: Task.FromException<T>(value);
+
+  /// <summary>
+  /// Invokes <paramref name="action"/> if <paramref name="predicate"/> succeeds.
+  /// </summary>
+  /// <example>This is useful for conditionally executing a side effect.
+  /// <code>
+  /// Task.FromResult(someUrl)
+  ///   .Then(httpClient.GetAsync)
+  ///   .IfFulfilled(InvokeIf(
+  ///     httpResponse => !httpResponse.IsSuccessStatusCode,
+  ///     response => _logger.LogWarning("Got '{StatusCode}' response from server", response.StatusCode)
+  ///   );
+  /// </code>
+  /// </example>
+  /// <param name="predicate">A predicate to evaluate with the <see cref="Task{T}"/>'s value.</param>
+  /// <param name="action">The function to invoke if <paramref name="predicate"/> returns <code>true</code>.</param>
+  /// <typeparam name="T">The type passed into <code>InvokeIf</code>.</typeparam>
+  /// <returns>A function that conditionally invokes another function.</returns>
+  public static Func<T, Task<T>> InvokeIf<T>(
+    Predicate<T> predicate,
+    Action<T> action
+  )
+  {
+    return value =>
+    {
+      if (predicate(value))
+      {
+        action(value);
+      }
+
+      return Task.FromResult(value);
+    };
+  }
+
+  /// <summary>
+  /// Invokes <paramref name="func"/> if <paramref name="predicate"/> succeeds.
+  /// </summary>
+  /// <example>This is useful for conditionally executing a side effect.
+  /// <code>
+  /// Task.FromResult(someUrl)
+  ///   .Then(httpClient.GetAsync)
+  ///   .IfFulfilled(InvokeIf(
+  ///     httpResponse => !httpResponse.IsSuccessStatusCode,
+  ///     response => _logger.LogWarning("Got '{StatusCode}' response from server", response.StatusCode)
+  ///   );
+  /// </code>
+  /// </example>
+  /// <param name="predicate">A predicate to evaluate with the <see cref="Task{T}"/>'s value.</param>
+  /// <param name="func">The function to invoke if <paramref name="predicate"/> returns <code>true</code>.</param>
+  /// <typeparam name="T">The type passed into <code>InvokeIf</code>.</typeparam>
+  /// <returns>A function that conditionally invokes another function.</returns>
+  public static Func<T, Task<T>> InvokeIf<T>(
+    Predicate<T> predicate,
+    Func<T, T> func
+  )
+  {
+    return value =>
+    {
+      if (predicate(value))
+      {
+        return Task.FromResult(func(value));
+      }
+
+      return Task.FromResult(value);
+    };
+  }
+
+  /// <summary>
+  /// Invokes <paramref name="func"/> if <paramref name="predicate"/> succeeds.
+  /// </summary>
+  /// <example>This is useful for conditionally executing a side effect.
+  /// <code>
+  /// Task.FromResult(someUrl)
+  ///   .Then(httpClient.GetAsync)
+  ///   .IfFulfilled(InvokeIf(
+  ///     httpResponse => !httpResponse.IsSuccessStatusCode,
+  ///     response => _logger.LogWarning("Got '{StatusCode}' response from server", response.StatusCode)
+  ///   );
+  /// </code>
+  /// </example>
+  /// <param name="predicate">A predicate to evaluate with the <see cref="Task{T}"/>'s value.</param>
+  /// <param name="func">The function to invoke if <paramref name="predicate"/> returns <code>true</code>.</param>
+  /// <typeparam name="T">The type passed into <code>InvokeIf</code>.</typeparam>
+  /// <returns>A function that conditionally invokes another function.</returns>
+  public static Func<T, Task<T>> InvokeIf<T>(
+    Predicate<T> predicate,
+    Func<T, Task<T>> func
+  )
+  {
+    return value =>
+    {
+      if (predicate(value))
+      {
+        return func(value);
+      }
+
+      return Task.FromResult(value);
+    };
+  }
+
+  /// <summary>
+  /// Invokes <paramref name="func"/> if <paramref name="predicate"/> succeeds.
+  /// </summary>
+  /// <example>This is useful for conditionally executing a side effect.
+  /// <code>
+  /// Task.FromResult(someUrl)
+  ///   .Then(httpClient.GetAsync)
+  ///   .IfFulfilled(InvokeIf(
+  ///     httpResponse => !httpResponse.IsSuccessStatusCode,
+  ///     response => _logger.LogWarning("Got '{StatusCode}' response from server", response.StatusCode)
+  ///   );
+  /// </code>
+  /// </example>
+  /// <param name="predicate">A predicate to evaluate with the <see cref="Task{T}"/>'s value.</param>
+  /// <param name="func">The function to invoke if <paramref name="predicate"/> returns <code>true</code>.</param>
+  /// <typeparam name="T">The type passed into <code>InvokeIf</code>.</typeparam>
+  /// <returns>A function that conditionally invokes another function.</returns>
+  public static Func<T, Task<T>> InvokeIf<T>(
+    Predicate<T> predicate,
+    Func<T, Task> func
+  )
+  {
+    return value =>
+    {
+      if (predicate(value))
+      {
+        return Task.FromResult(value).Then(func).Then(_ => value);
+      }
+
+      return Task.FromResult(value);
+    };
+  }
 
 	/// <summary>
   /// A function that executes the <paramref name="supplier"/> after <paramref name="deferTime"/> has elapsed.

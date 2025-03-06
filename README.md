@@ -73,6 +73,8 @@ Task.FromResult("not-a-url")                                                  //
 
 The `IfFulfilled` and `IfFaulted` methods can be used to perform side effects such as logging when the `Task<T>` is in the fulfilled or faulted state, respectively.
 
+**NOTE**: These functions do _not_ trap errors. If the function passed to them throws an exception, the result is a faulted task with that exception.
+
 ```c#
 HttpClient client;  // Assuming this is coming from an HttpClientFactory or injected or whatever
 
@@ -153,6 +155,29 @@ Task.FromException<int>(new ArgumentException())
     exception => exception is ArgumentException,
     exception => exception.Message.Length
   ))
+```
+
+#### InvokeIf
+
+`InvokeIf` can be used to conditionally invoke a function. This is most useful for side effects.
+
+```c#
+Task.FromResult(someUrl)
+  .Then(httpClient.GetAsync)
+  .IfFulfilled(TaskExtras.InvokeIf(
+    httpResponse => !httpResponse.IsSuccessStatusCode,
+    httpResponse => _logger.LogWarning("Got '{StatusCode}' response from server", httpResponse.StatusCode)
+  );
+```
+
+However, it can be used with `.Then` as well:
+
+```c#
+Task.FromResult(4)
+  .Then(InvokeIf(
+    value => value % 2 == 0,
+    value => value + 1
+  );
 ```
 
 [bluebird]: http://bluebirdjs.com/docs/getting-started.html

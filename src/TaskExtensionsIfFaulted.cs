@@ -1,10 +1,7 @@
 using System;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace RLC.TaskChaining;
-
-using static TaskStatics;
 
 public static partial class TaskExtensions
 {
@@ -12,6 +9,7 @@ public static partial class TaskExtensions
   /// Performs an action if the <see name="Task{T}"/> is in a faulted state.
   /// </summary>
   /// <typeparam name="T">The task's underlying type.</typeparam>
+  /// <param name="task">The task.</param>
   /// <param name="onFaulted">The action to perform if the task is faulted.</param>
   /// <returns>The task.</returns>
   public static Task<T> IfFaulted<T>(this Task<T> task, Action<Exception> onFaulted)
@@ -27,6 +25,7 @@ public static partial class TaskExtensions
   /// </summary>
   /// <typeparam name="T">The task's underlying type.</typeparam>
   /// <typeparam name="R">The output task's underlying type.</typeparam>
+  /// <param name="task">The task.</param>
   /// <param name="onFaulted">The function to execute if the task is faulted.</param>
   /// <returns>The task.</returns>
   public static Task<T> IfFaulted<T, R>(this Task<T> task, Func<Exception, Task<R>> onFaulted)
@@ -37,13 +36,11 @@ public static partial class TaskExtensions
         Exception taskException = PotentiallyUnwindException(continuationTask.Exception!);
 
         return Task.FromException<R>(PotentiallyUnwindException(continuationTask.Exception!))
-          .Catch<R>(ex => onFaulted(ex))
-          .Then(
-            _ => Task.FromException<T>(taskException),
-            _ => Task.FromException<T>(taskException)
-          );
+          .Catch(onFaulted)
+          .Then(_ => Task.FromException<T>(taskException));
       }
-      else if (continuationTask.IsCanceled)
+      
+      if (continuationTask.IsCanceled)
       {
         try
         {
@@ -64,8 +61,9 @@ public static partial class TaskExtensions
   /// Executes a function and throws away the result if the <see name="Task{T}"/> is in a faulted state.
   /// </summary>
   /// <typeparam name="T">The task's underlying type.</typeparam>
+  /// <param name="task">The task.</param>
   /// <param name="onFaulted">The function to execute if the task is faulted.</param>
   /// <returns>The task.</returns>
   public static Task<T> IfFaulted<T>(this Task<T> task, Func<Exception, Task> onFaulted)
-    => task.IfFaulted<T, T>(exception => onFaulted(exception).ContinueWith(continuationTask => Task.FromException<T>(exception)).Unwrap());
+    => task.IfFaulted<T, T>(exception => onFaulted(exception).ContinueWith(_ => Task.FromException<T>(exception)).Unwrap());
 }

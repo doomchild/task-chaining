@@ -58,6 +58,7 @@ public static partial class TaskExtensions
   /// <typeparam name="T">The task's underlying type.</typeparam>
   /// <typeparam name="TR">The type of the other input value to <paramref name="morphismTask"/>.</typeparam>
   /// <typeparam name="TNext">The transformed type.</typeparam>
+  /// <param name="task">The task.</param>
   /// <param name="morphismTask">A <see cref="Task{Func{T, TR, TNext}}"/> containing the transformation function. </param>
   /// <returns>The transformed task.</returns>
   public static Task<TNext> Ap<T, TNext>(
