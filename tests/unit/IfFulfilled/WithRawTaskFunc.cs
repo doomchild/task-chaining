@@ -141,4 +141,22 @@ public class WithRawTaskFunc
 
     await Assert.ThrowsAsync<ArgumentNullException>(() => testTask);
   }
+  
+  [Fact]
+  public async Task ItShouldProperlyCaptureTheTask()
+  {
+    int actualValue = 0;
+    int expectedValue = 5;
+    Func<int, Task> onFulfilled = async _ =>
+    {
+      await Task.Delay(TimeSpan.FromSeconds(1));
+      
+      actualValue = 5;
+    };
+
+    await Task.FromResult(5)
+      .IfFulfilled(onFulfilled);
+
+    Assert.Equal(expectedValue, actualValue);
+  }
 }
