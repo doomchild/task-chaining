@@ -23,7 +23,7 @@ public class WithFullTaskFunc
       await Task.FromException<int>(new ArgumentNullException())
         .IfFaulted(onFaulted);
     }
-    catch (ArgumentNullException exception)
+    catch (ArgumentNullException)
     {
     }
 
@@ -153,5 +153,30 @@ public class WithFullTaskFunc
       .IfFaulted(func);
 
     await Assert.ThrowsAsync<ArgumentNullException>(() => testTask);
+  }
+  
+  [Fact]
+  public async Task ItShouldProperlyCaptureTheTask()
+  {
+    int actualValue = 0;
+    int expectedValue = 5;
+    Func<Exception, Task<int>> onFaulted = async _ =>
+    {
+      await Task.Delay(TimeSpan.FromSeconds(1));
+      
+      actualValue = 5;
+      return 5;
+    };
+
+    try
+    {
+      await Task.FromException<int>(new ArgumentNullException())
+        .IfFaulted(onFaulted);
+    }
+    catch (ArgumentNullException)
+    {
+    }
+
+    Assert.Equal(expectedValue, actualValue);
   }
 }
