@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using RLC.TaskChaining;
 using Xunit;
@@ -90,12 +91,15 @@ public class WithRawTaskFunc
   {
     int actualValue = 0;
     int expectedValue = 0;
-    Func<int, string> func = _ => throw new TaskCanceledException();
+    CancellationTokenSource cts = new();
+    Func<int, Task<string>> func = _ => Task.Run(() => string.Empty, cts.Token);
     Func<string, Task> onFulfilled = _ =>
     {
       actualValue = 5;
       return Task.CompletedTask;
     };
+
+    cts.Cancel();
 
     try
     {
@@ -103,7 +107,7 @@ public class WithRawTaskFunc
         .Then(func)
         .IfFulfilled(onFulfilled);
     }
-    catch (OperationCanceledException)
+    catch (TaskCanceledException)
     {
     }
 
@@ -115,12 +119,15 @@ public class WithRawTaskFunc
   {
     int actualValue = 0;
     int expectedValue = 0;
-    Func<int, string> func = _ => throw new TaskCanceledException();
+    CancellationTokenSource cts = new();
+    Func<int, Task<string>> func = _ => Task.Run(() => string.Empty, cts.Token);
     Func<string, Task> onFulfilled = _ =>
     {
       actualValue = 5;
       return Task.CompletedTask;
     };
+
+    cts.Cancel();
 
     _ = Task.FromResult(0)
       .Then(func)

@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using RLC.TaskChaining;
 using Xunit;
@@ -55,8 +56,11 @@ public class WithAction
   {
     int actualValue = 0;
     int expectedValue = 5;
-    Func<int, string> func = _ => throw new TaskCanceledException();
+    CancellationTokenSource cts = new();
+    Func<int, Task<string>> func = _ => Task.Run(() => string.Empty, cts.Token);
     Action<Exception> onFaulted = _ => { actualValue = 5; };
+
+    cts.Cancel();
 
     try
     {
@@ -76,8 +80,11 @@ public class WithAction
   {
     int actualValue = 0;
     int expectedValue = 5;
-    Func<int, string> func = _ => throw new TaskCanceledException();
+    CancellationTokenSource cts = new();
+    Func<int, Task<string>> func = _ => Task.Run(() => string.Empty, cts.Token);
     Action<Exception> onFaulted = _ => { actualValue = 5; };
+
+    cts.Cancel();
 
     _ = Task.FromResult(0)
       .Then(func)

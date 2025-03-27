@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using RLC.TaskChaining;
 using Xunit;
@@ -79,22 +80,20 @@ public class WithBothActions
   {
     int actualValue = 0;
     int expectedValue = 5;
-    Func<int, int> func = _ => throw new TaskCanceledException();
+    CancellationTokenSource cts = new();
     Action<int> onFulfilled = _ => { actualValue = 0; };
     Action<Exception> onFaulted = _ => { actualValue = 5; };
+    
+    cts.Cancel();
 
     try
     {
-      await Task.FromResult(0)
-        .Then(func)
+      await Task.Run(() => 0, cts.Token)
         .Tap(onFulfilled, onFaulted);
     }
     catch (TaskCanceledException)
     {
     }
-
-
-    await Task.Delay(10);
 
     Assert.Equal(expectedValue, actualValue);
   }
@@ -104,12 +103,13 @@ public class WithBothActions
   {
     int actualValue = 0;
     int expectedValue = 5;
-    Func<int, int> func = _ => throw new TaskCanceledException();
+    CancellationTokenSource cts = new();
     Action<int> onFulfilled = _ => { actualValue = 0; };
     Action<Exception> onFaulted = _ => { actualValue = 5; };
+    
+    cts.Cancel();
 
-    _ = Task.FromResult(0)
-      .Then(func)
+    _ = Task.Run(() => 0, cts.Token)
       .Tap(onFulfilled, onFaulted);
 
     await Task.Delay(10);

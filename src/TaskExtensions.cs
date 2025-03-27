@@ -22,9 +22,9 @@ public static partial class TaskExtensions
 
       return new Exception("Expected canceled task");
     }
-    catch (OperationCanceledException exception)
+    catch (Exception exception)
     {
-      return exception;
+      return PotentiallyUnwindException(exception);
     }
   }
 
