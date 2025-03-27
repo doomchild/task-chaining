@@ -20,7 +20,11 @@ public static partial class TaskExtensions
     {
       if (continuationTask.IsCanceled)
       {
-        return continuationTask;
+        Exception exception = HandleCancellation(continuationTask);
+
+        onFaulted(exception);
+
+        return Task.FromException<T>(exception);
       }
     
       return continuationTask.IsFaulted
@@ -64,7 +68,11 @@ public static partial class TaskExtensions
     {
       if (continuationTask.IsCanceled)
       {
-        return continuationTask;
+        Exception exception = HandleCancellation(continuationTask);
+
+        onFaulted(exception);
+
+        return Task.FromException<T>(exception);
       }
     
       return continuationTask.IsFaulted
@@ -88,7 +96,11 @@ public static partial class TaskExtensions
     {
       if (continuationTask.IsCanceled)
       {
-        return continuationTask;
+        Exception exception = HandleCancellation(continuationTask);
+
+        onFaulted(exception);
+
+        return Task.FromException<T>(exception);
       }
     
       return continuationTask.IsFaulted
@@ -111,7 +123,11 @@ public static partial class TaskExtensions
     {
       if (continuationTask.IsCanceled)
       {
-        return continuationTask;
+        Exception exception = HandleCancellation(continuationTask);
+
+        onFaulted(exception);
+
+        return Task.FromException<T>(exception);
       }
     
       return continuationTask.IsFaulted
@@ -131,17 +147,21 @@ public static partial class TaskExtensions
   /// <param name="onFaulted">The function to execute if the task is faulted.</param>
   /// <returns>The task.</returns>
   public static Task<T> Tap<T, R, S>(this Task<T> task, Func<T, Task<R>> onFulfilled, Func<Exception, Task<S>> onFaulted)
-    => task.ContinueWith(continuationTask =>
+    => task.ContinueWith(async continuationTask =>
     {
       if (continuationTask.IsCanceled)
       {
-        return continuationTask;
+        Exception exception = HandleCancellation(continuationTask);
+
+        await onFaulted(exception);
+
+        return Task.FromException<T>(exception);
       }
     
       return continuationTask.IsFaulted
         ? continuationTask.IfFaulted(onFaulted)
         : continuationTask.IfFulfilled(onFulfilled);
-    }).Unwrap();
+    }).Unwrap().Unwrap();
 
   /// <summary>
   /// Executes a function and discards the result on a <see name="Task{T}"/> whether it is in a fulfilled or faulted state.
@@ -154,17 +174,37 @@ public static partial class TaskExtensions
   /// <param name="onFaulted">The function to execute if the task is faulted.</param>
   /// <returns>The task.</returns>
   public static Task<T> Tap<T>(this Task<T> task, Func<T, Task> onFulfilled, Func<Exception, Task> onFaulted)
-    => task.ContinueWith(continuationTask =>
+    => task.ContinueWith(async continuationTask =>
     {
       if (continuationTask.IsCanceled)
       {
-        return continuationTask;
+        Exception exception = HandleCancellation(continuationTask);
+
+        await onFaulted(exception);
+
+        return Task.FromException<T>(exception);
+      }
+      
+      if (continuationTask is { IsFaulted: false, Result: Task { IsCanceled: true } resultTask })
+      {
+        try
+        {
+          await resultTask;
+        }
+        catch (Exception exception)
+        {
+          var resultException = PotentiallyUnwindException(exception);
+        
+          await onFaulted(resultException);
+    
+          return continuationTask;
+        }
       }
     
       return continuationTask.IsFaulted
         ? continuationTask.IfFaulted(onFaulted)
         : continuationTask.IfFulfilled(onFulfilled);
-    }).Unwrap();
+    }).Unwrap().Unwrap();
 
   /// <summary>
   /// Executes a function and discards the result on a <see name="Task{T}"/> whether it is in a fulfilled or faulted state.

@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using RLC.TaskChaining;
 using Xunit;
@@ -96,7 +97,8 @@ public class WithBothRawTasks
   {
     int actualValue = 0;
     int expectedValue = 5;
-    Func<int, Task> func = _ => throw new TaskCanceledException();
+    CancellationTokenSource cts = new();
+    Func<int, Task> func = _ => Task.Run(() => Task.CompletedTask, cts.Token);
     Func<Task, Task> onFulfilled = _ =>
     {
       actualValue = 0;
@@ -108,11 +110,17 @@ public class WithBothRawTasks
       return Task.CompletedTask;
     };
 
-    _ = Task.FromResult(0)
-      .Then(func)
-      .Tap(onFulfilled, onFaulted);
+    cts.Cancel();
 
-    await Task.Delay(10);
+    try
+    {
+      await Task.FromResult(1)
+        .Then(func)
+        .Tap(onFulfilled, onFaulted);
+    }
+    catch (TaskCanceledException)
+    {
+    }
 
     Assert.Equal(expectedValue, actualValue);
   }
@@ -122,7 +130,8 @@ public class WithBothRawTasks
   {
     int actualValue = 0;
     int expectedValue = 5;
-    Func<int, Task> func = _ => throw new TaskCanceledException();
+    CancellationTokenSource cts = new();
+    Func<int, Task> func = _ => Task.Run(() => { }, cts.Token);
     Func<Task, Task> onFulfilled = _ =>
     {
       actualValue = 0;
@@ -133,6 +142,8 @@ public class WithBothRawTasks
       actualValue = 5;
       return Task.CompletedTask;
     };
+
+    cts.Cancel();
 
     _ = Task.FromResult(0)
       .Then(func)

@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using RLC.TaskChaining;
 using Xunit;
@@ -96,7 +97,8 @@ public class WithBothFullTasks
   {
     int actualValue = 0;
     int expectedValue = 5;
-    Func<int, Task<int>> func = _ => throw new TaskCanceledException();
+    CancellationTokenSource cts = new();
+    Func<int, Task<int>> func = _ => Task.Run(() => 1, cts.Token);
     Func<int, Task<int>> onFulfilled = i =>
     {
       actualValue = 0;
@@ -109,8 +111,9 @@ public class WithBothFullTasks
       return Task.FromResult(1);
     };
 
-    _ = Task.FromResult(0)
-      .Then(func)
+    cts.Cancel();
+
+    _ = Task.Run(() => 1, cts.Token)
       .Tap(onFulfilled, onFaulted);
 
     await Task.Delay(10);
@@ -123,7 +126,8 @@ public class WithBothFullTasks
   {
     int actualValue = 0;
     int expectedValue = 5;
-    Func<int, int> func = _ => throw new TaskCanceledException();
+    CancellationTokenSource cts = new();
+    Func<int, Task<int>> func = _ => Task.Run(() => 1, cts.Token);
     Func<int, Task<int>> onFulfilled = i =>
     {
       actualValue = 0;
@@ -136,8 +140,9 @@ public class WithBothFullTasks
       return Task.FromResult(1);
     };
 
-    _ = Task.FromResult(0)
-      .Then(func)
+    cts.Cancel();
+
+    _ = Task.Run(() => 1, cts.Token)
       .Tap(onFulfilled, onFaulted);
 
     await Task.Delay(10);

@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using RLC.TaskChaining;
 using Xunit;
@@ -89,19 +90,26 @@ public class WithActionOnFulfilledAndFullTaskOnFaulted
   {
     int actualValue = 0;
     int expectedValue = 5;
-    Func<int, Task<int>> func = _ => throw new TaskCanceledException();
+    CancellationTokenSource cts = new();
+    Func<int, Task<int>> func = _ => Task.Run(() => actualValue = 1, cts.Token);
     Action<int> onFulfilled = _ => { actualValue = 5; };
     Func<Exception, Task<int>> onFaulted = _ =>
     {
       actualValue = 5;
       return Task.FromResult(1);
     };
+    
+    cts.Cancel();
 
-    _ = Task.FromResult(0)
-      .Then(func)
-      .Tap(onFulfilled, onFaulted);
-
-    await Task.Delay(10);
+    try
+    {
+      await Task.FromResult(0)
+        .Then(func)
+        .Tap(onFulfilled, onFaulted);
+    }
+    catch (TaskCanceledException)
+    {
+    }
 
     Assert.Equal(expectedValue, actualValue);
   }
@@ -111,13 +119,16 @@ public class WithActionOnFulfilledAndFullTaskOnFaulted
   {
     int actualValue = 0;
     int expectedValue = 5;
-    Func<int, int> func = _ => throw new TaskCanceledException();
+    CancellationTokenSource cts = new();
+    Func<int, Task<int>> func = _ => Task.Run(() => actualValue = 1, cts.Token);
     Action<int> onFulfilled = _ => { actualValue = 5; };
     Func<Exception, Task<int>> onFaulted = _ =>
     {
       actualValue = 5;
       return Task.FromResult(1);
     };
+
+    cts.Cancel();
 
     _ = Task.FromResult(0)
       .Then(func)
