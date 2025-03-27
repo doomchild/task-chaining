@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using RLC.TaskChaining;
 using Xunit;
@@ -82,17 +83,49 @@ public class WithFullTaskOnFulfilledAndActionOnFaulted
   }
 
   [Fact]
-  public async Task ItShouldPerformASideEffectOnACancellationWithoutAwaiting()
+  public async Task ItShouldPerformASideEffectOnACancellation()
   {
     int actualValue = 0;
     int expectedValue = 5;
-    Func<int, Task<int>> func = _ => throw new TaskCanceledException();
+    CancellationTokenSource cts = new();
+    Func<int, Task<int>> func = _ => Task.Run(() => 1, cts.Token);
     Func<int, Task<int>> onFulfilled = _ =>
     {
       actualValue = 0;
       return Task.FromResult(5);
     };
     Action<Exception> onFaulted = _ => { actualValue = 5; };
+
+    cts.Cancel();
+
+    try
+    {
+      await Task.FromResult(0)
+        .Then(func)
+        .Tap(onFulfilled, onFaulted);
+    }
+    catch (TaskCanceledException)
+    {
+    }
+
+    Assert.Equal(expectedValue, actualValue);
+  }
+
+  [Fact]
+  public async Task ItShouldPerformASideEffectOnACancellationWithoutAwaiting()
+  {
+    int actualValue = 0;
+    int expectedValue = 5;
+    CancellationTokenSource cts = new();
+    Func<int, Task<int>> func = _ => Task.Run(() => 1, cts.Token);
+    Func<int, Task<int>> onFulfilled = _ =>
+    {
+      actualValue = 0;
+      return Task.FromResult(5);
+    };
+    Action<Exception> onFaulted = _ => { actualValue = 5; };
+
+    cts.Cancel();
 
     _ = Task.FromResult(0)
       .Then(func)
