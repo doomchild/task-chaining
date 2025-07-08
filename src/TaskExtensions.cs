@@ -433,16 +433,35 @@ public static partial class TaskExtensions
       ? onFaulted((TException) ex)
       : task
     );
-
+  
+  /// <summary>Creates a cancellable task that completes after a specified time interval.</summary>
+  /// <param name="task">The task.</param>
+  /// <param name="delayInterval">The time span to wait before completing the returned task, or <see langword="TimeSpan.FromMilliseconds(-1)" /> to wait indefinitely.</param>
+  /// <param name="cancellationToken">A cancellation token to observe while waiting for the task to complete.</param>
+  /// <exception cref="T:System.ArgumentOutOfRangeException">
+  ///        <paramref name="delayInterval" /> represents a negative time interval other than <see langword="TimeSpan.FromMilliseconds(-1)" />.
+  /// 
+  /// -or-
+  /// 
+  /// The <paramref name="delayInterval" /> argument's <see cref="P:System.TimeSpan.TotalMilliseconds" /> property is greater than 4294967294 on .NET 6 and later versions, or <see cref="F:System.Int32.MaxValue">Int32.MaxValue</see> on all previous versions.</exception>
+  /// <exception cref="T:System.Threading.Tasks.TaskCanceledException">The task has been canceled.</exception>
+  /// <exception cref="T:System.ObjectDisposedException">The provided <paramref name="cancellationToken" /> has already been disposed.</exception>
+  /// <returns>A task that represents the time delay.</returns>
   public static Task<T> Delay<T>(
     this Task<T> task,
     TimeSpan delayInterval,
     CancellationToken cancellationToken = default
   ) => task.ContinueWith(continuationTask =>
-  {
-    return Task.Delay(delayInterval, cancellationToken)
-      .ContinueWith(delayTask => continuationTask.Result);
-  }).Unwrap();
+    {
+      return Task.Delay(delayInterval, cancellationToken)
+        .ContinueWith(_ => continuationTask.IsFaulted 
+            ? Task.FromException<T>(PotentiallyUnwindException(continuationTask.Exception!)) 
+            : Task.FromResult(continuationTask.Result), 
+          cancellationToken
+        );
+    }, 
+    cancellationToken
+  ).Unwrap().Unwrap();
 
   /// <summary>
   /// Faults a <see cref="Task{T}"/> with a provided <see cref="Exception"/>.
