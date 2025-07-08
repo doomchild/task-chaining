@@ -305,16 +305,16 @@ public static class TaskExtras
 			? Task.FromException<T>(new RetryException(attempts, exception))
 			: Task.Run(supplier)
 				.Catch(ResolveIf(
-					exception => retryParams.ShouldRetry(exception),
-          exception =>
+					ex => retryParams.ShouldRetry(ex),
+          ex =>
           {
             if(retryParams.OnRetry != null)
             {
-              retryParams.OnRetry(attempts, duration, exception);
+              retryParams.OnRetry(attempts, duration, ex);
             }
 
             return Defer(
-              () => DoRetry(supplier, retryParams, exception, attempts + 1),
+              () => DoRetry(supplier, retryParams, ex, attempts + 1),
               duration
             );
           }
