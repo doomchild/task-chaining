@@ -13,20 +13,11 @@ public static partial class TaskExtensions
   private static Exception PotentiallyUnwindException(Exception exception) => exception is AggregateException aggregateException 
     ? aggregateException.InnerException ?? exception
     : exception;
-
-  private static Exception HandleCancellation<T>(this Task<T> task)
-  {
-    try
-    {
-      T result = task.Result;
-
-      return new Exception("Expected canceled task");
-    }
-    catch (Exception exception)
-    {
-      return PotentiallyUnwindException(exception);
-    }
-  }
+  
+  private static Exception HandleCancellation<T>(Task<T> task) =>
+    task.IsCanceled 
+      ? new TaskCanceledException() 
+      : PotentiallyUnwindException(task.Exception ?? new Exception("Expected canceled task"));
 
   /// <summary>
   /// Monadic 'alt'.
