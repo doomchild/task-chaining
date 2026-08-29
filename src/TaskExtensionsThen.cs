@@ -148,7 +148,7 @@ public static partial class TaskExtensions
     {
       if (continuationTask.IsCanceled)
       {
-        return Task.FromException<TNext>(HandleCancellation(task));
+        return Task.FromException<TNext>(HandleCancellation(continuationTask));
       }
 
       return continuationTask.IsFaulted
@@ -178,7 +178,7 @@ public static partial class TaskExtensions
     {
       if (continuationTask.IsCanceled)
       {
-        return Task.FromException<TNext>(HandleCancellation(task));
+        return Task.FromException<TNext>(HandleCancellation(continuationTask));
       }
 
       return continuationTask.IsFaulted
@@ -208,7 +208,7 @@ public static partial class TaskExtensions
     {
       if (continuationTask.IsCanceled)
       {
-        return Task.FromException<TNext>(HandleCancellation(task));
+        return Task.FromException<TNext>(HandleCancellation(continuationTask));
       }
 
       return continuationTask.IsFaulted
@@ -238,7 +238,7 @@ public static partial class TaskExtensions
     {
       if (continuationTask.IsCanceled)
       {
-        return Task.FromException<TNext>(HandleCancellation(task));
+        return Task.FromException<TNext>(HandleCancellation(continuationTask));
       }
 
       return continuationTask.IsFaulted
@@ -268,7 +268,7 @@ public static partial class TaskExtensions
     {
       if (continuationTask.IsCanceled)
       {
-        return Task.FromException<TNext>(HandleCancellation(task));
+        return Task.FromException<TNext>(HandleCancellation(continuationTask));
       }
 
       return continuationTask.IsFaulted

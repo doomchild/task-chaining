@@ -185,7 +185,7 @@ public static partial class TaskExtensions
         return Task.FromException<T>(exception);
       }
       
-      if (continuationTask is { IsFaulted: false, Result: Task { IsCanceled: true } resultTask })
+      if (continuationTask is { IsFaulted: false, Result: Task<T> { IsCanceled: true } resultTask })
       {
         try
         {
@@ -197,7 +197,7 @@ public static partial class TaskExtensions
         
           await onFaulted(resultException);
     
-          return continuationTask;
+          return resultTask;
         }
       }
     

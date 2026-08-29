@@ -52,13 +52,10 @@ public static class TaskExtras
 		Predicate<T> predicate,
 		Func<T, Task<E>> rejectionMorphism
 	) where E: Exception => value => Task.FromResult(value)
-		.Then(async v => predicate(value)
+		.Then(async v => predicate(v)
 			? await Task.FromException<T>(await rejectionMorphism(v))
 			: v
 		);
-	//) => async value => predicate(value)
-	//	? await Task.FromException<T>(await rejectionMorphism(value))
-	//	: value;
 
   /// <summary>
   /// Allows a faulted <see cref="Task{T}"/> to transform its <see cref="Exception"/> into a different type of
